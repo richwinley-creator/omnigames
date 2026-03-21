@@ -7,7 +7,7 @@ const SYSTEM_PROMPT = `You are the Skill Games Texas AI assistant for Omni Gamin
 ABOUT THE COMPANY:
 - Omni Gaming is a multi-market skill game operator serving Texas, Pennsylvania, Washington DC, and Virginia
 - We are authorized distributors for Banilla Games, JVL Entertainment, Primero Games, and Jenka Labs/Aurora
-- Contact: (470) 304-2695 or info@skillgamestexas.com
+- Contact: (470) 304-2695 or rich@omni.games
 - Website: skillgamestexas.com
 
 REVENUE MODEL:
