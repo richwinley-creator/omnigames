@@ -4,8 +4,8 @@ import db from '../db.js';
 const router = Router();
 
 // GET /api/locations — list all with aggregated revenue
-router.get('/', (req, res) => {
-  const locations = db.prepare(`
+router.get('/', async (req, res) => {
+  const locations = await db.prepare(`
     SELECT l.*,
       COALESCE(r.total_net, 0) as net,
       COALESCE(r.total_net * l.gse_pct / 100.0, 0) as gse_share,
@@ -28,18 +28,18 @@ router.get('/', (req, res) => {
 });
 
 // PUT /api/locations/:id — update status
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
   const { status } = req.body;
-  db.prepare('UPDATE locations SET status = ? WHERE id = ?').run(status, req.params.id);
+  await db.prepare('UPDATE locations SET status = ? WHERE id = ?').run(status, req.params.id);
   res.json({ ok: true });
 });
 
 // POST /api/locations — add new location
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   const { name, sheet_name, machines, gse_pct, partner, partner_pct, machine_type } = req.body;
-  const result = db.prepare(`
+  const result = await db.prepare(`
     INSERT INTO locations (name, sheet_name, machines, gse_pct, partner, partner_pct, machine_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id
   `).run(name, sheet_name, machines, gse_pct, partner, partner_pct, machine_type || 'Banilla');
   res.json({ id: result.lastInsertRowid });
 });

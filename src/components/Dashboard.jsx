@@ -38,9 +38,9 @@ const styles = {
 
 const fmt = (n) => '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-export default function Dashboard() {
+export default function Dashboard({ isAdmin = true }) {
   const { data: locations } = useApi('/api/locations');
-  const { data: deposits } = useApi('/api/deposits');
+  const { data: deposits } = useApi(isAdmin ? '/api/deposits' : '/api/health');
 
   // Use API data if readings exist, otherwise seed data
   const locs = locations || [];
@@ -91,11 +91,13 @@ export default function Dashboard() {
           <p style={styles.cardValue}>{totalMachines}</p>
           <p style={styles.cardSub}>Across {totalLocations} locations</p>
         </div>
-        <div style={card('#059669')}>
-          <p style={styles.cardLabel}>Bank Deposits</p>
-          <p style={styles.cardValue}>{fmt(totalDeposits)}</p>
-          <p style={styles.cardSub}>{(deposits || []).length} deposits</p>
-        </div>
+        {isAdmin && (
+          <div style={card('#059669')}>
+            <p style={styles.cardLabel}>Bank Deposits</p>
+            <p style={styles.cardValue}>{fmt(totalDeposits)}</p>
+            <p style={styles.cardSub}>{(deposits || []).length} deposits</p>
+          </div>
+        )}
       </div>
 
       {/* Target Progress */}
@@ -144,30 +146,32 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Deposits */}
-      <div style={styles.section}>
-        <h3 style={styles.sectionTitle}>Recent Deposits</h3>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Date</th>
-              <th style={styles.th}>Bank</th>
-              <th style={styles.th}>Ref</th>
-              <th style={{ ...styles.th, textAlign: 'right' }}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(deposits || []).slice(0, 5).map(d => (
-              <tr key={d.id}>
-                <td style={styles.td}>{d.date}</td>
-                <td style={styles.td}>{d.bank}</td>
-                <td style={styles.td}>{d.ref}</td>
-                <td style={{ ...styles.td, textAlign: 'right', fontWeight: 600 }}>{fmt(d.amount)}</td>
+      {/* Recent Deposits - Admin only */}
+      {isAdmin && (
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Recent Deposits</h3>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Bank</th>
+                <th style={styles.th}>Ref</th>
+                <th style={{ ...styles.th, textAlign: 'right' }}>Amount</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {(deposits || []).slice(0, 5).map(d => (
+                <tr key={d.id}>
+                  <td style={styles.td}>{d.date}</td>
+                  <td style={styles.td}>{d.bank}</td>
+                  <td style={styles.td}>{d.ref}</td>
+                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: 600 }}>{fmt(d.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

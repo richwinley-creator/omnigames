@@ -5,12 +5,12 @@ import db from '../db.js';
 const router = Router();
 
 // GET /api/export/excel — download COAM_Dashboard.xlsx
-router.get('/excel', (req, res) => {
-  const locations = db.prepare('SELECT * FROM locations ORDER BY id').all();
+router.get('/excel', async (req, res) => {
+  const locations = await db.prepare('SELECT * FROM locations ORDER BY id').all();
   const wb = XLSX.utils.book_new();
 
   for (const loc of locations) {
-    const readings = db.prepare(`
+    const readings = await db.prepare(`
       SELECT machine_name, prev_in, curr_in, total_in, prev_out, curr_out, total_out, net
       FROM readings WHERE location_id = ? ORDER BY date DESC, id
     `).all(loc.id);

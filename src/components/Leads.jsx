@@ -65,12 +65,13 @@ const styles = {
   statLabel: { fontSize: 10, color: '#6b7280', textTransform: 'uppercase' },
 };
 
-export default function Leads() {
+export default function Leads({ user }) {
+  const isAdmin = user?.role === 'admin';
   const [filter, setFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editLead, setEditLead] = useState(null);
   const { data: leads, refetch } = useApi('/api/leads');
-  const { data: users } = useApi('/api/auth/users');
+  const { data: users } = useApi(isAdmin ? '/api/auth/users' : null);
   const { data: summary, refetch: refetchSummary } = useApi('/api/leads/summary');
 
   const filtered = (leads || []).filter(l => {

@@ -71,7 +71,8 @@ Notes:
 
     if (!response.ok) {
       const err = await response.text();
-      return res.status(response.status).json({ error: 'Anthropic API error', details: err });
+      console.error('Anthropic API error:', err);
+      return res.status(502).json({ error: 'AI extraction service unavailable' });
     }
 
     const data = await response.json();
@@ -83,12 +84,14 @@ Notes:
       const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
       parsed = JSON.parse(jsonMatch[1].trim());
     } catch {
-      return res.status(422).json({ error: 'Could not parse extraction result', raw: text });
+      console.error('Extraction parse failed:', text);
+      return res.status(422).json({ error: 'Could not parse extraction result' });
     }
 
     res.json(parsed);
   } catch (err) {
-    res.status(500).json({ error: 'Extraction failed', message: err.message });
+    console.error('Extraction error:', err.message);
+    res.status(500).json({ error: 'Extraction failed' });
   }
 });
 

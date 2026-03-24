@@ -17,6 +17,7 @@ export function useApi(url, deps = []) {
   const [error, setError] = useState(null);
 
   const refetch = useCallback(async () => {
+    if (!url) { setData(null); setLoading(false); return; }
     setLoading(true);
     try {
       const res = await fetch(url, { headers: authHeaders() });
