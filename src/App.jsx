@@ -81,33 +81,36 @@ const TEAM_TABS = [
 
 const dashStyles = {
   header: {
-    background: '#1a1a2e', color: '#fff', padding: '12px 24px',
+    background: '#0f172a', color: '#fff', padding: '0 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     flexWrap: 'wrap', gap: 8, position: 'sticky', top: 64, zIndex: 50,
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid rgba(255,255,255,0.06)',
+    height: 52,
   },
-  nav: { display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' },
+  nav: { display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' },
   tab: (active) => ({
-    padding: '6px 14px', border: 'none', borderRadius: 6, cursor: 'pointer',
-    fontSize: 12, fontWeight: active ? 600 : 400,
-    background: active ? '#4f46e5' : 'transparent',
-    color: active ? '#fff' : '#9ca3af', transition: 'all 0.15s',
+    padding: '7px 14px', border: 'none', borderRadius: 8, cursor: 'pointer',
+    fontSize: 13, fontWeight: active ? 600 : 500,
+    background: active ? 'rgba(79,70,229,0.9)' : 'transparent',
+    color: active ? '#fff' : '#94a3b8', transition: 'all 0.15s',
     textDecoration: 'none', display: 'inline-block',
+    letterSpacing: '-0.01em',
   }),
-  content: { padding: 24, maxWidth: 1400, margin: '0 auto', minHeight: 'calc(100vh - 128px)' },
+  content: { padding: '28px 28px 40px', maxWidth: 1400, margin: '0 auto', minHeight: 'calc(100vh - 128px)' },
   userInfo: {
-    display: 'flex', alignItems: 'center', gap: 12,
+    display: 'flex', alignItems: 'center', gap: 10,
   },
-  userName: { fontSize: 13, color: '#d1d5db' },
+  userName: { fontSize: 13, color: '#cbd5e1', fontWeight: 500 },
   roleBadge: (isAdmin) => ({
-    fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
-    background: isAdmin ? '#4f46e518' : '#10b98118',
-    color: isAdmin ? '#818cf8' : '#10b981',
-    textTransform: 'uppercase', letterSpacing: 0.5,
+    fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10,
+    background: isAdmin ? 'rgba(129,140,248,0.15)' : 'rgba(16,185,129,0.15)',
+    color: isAdmin ? '#a5b4fc' : '#6ee7b7',
+    textTransform: 'uppercase', letterSpacing: '0.05em',
   }),
   logoutBtn: {
-    padding: '5px 12px', background: '#374151', color: '#9ca3af', border: 'none',
-    borderRadius: 6, fontSize: 11, cursor: 'pointer',
+    padding: '6px 14px', background: 'rgba(255,255,255,0.08)', color: '#94a3b8', border: 'none',
+    borderRadius: 8, fontSize: 12, cursor: 'pointer', fontWeight: 500,
+    transition: 'all 0.15s',
   },
 };
 
@@ -149,7 +152,7 @@ function DashboardShell() {
   const currentPath = location.pathname.replace(basePath, '').replace(/^\//, '') || '';
 
   return (
-    <div style={{ background: '#f5f5f5', minHeight: 'calc(100vh - 64px)' }}>
+    <div style={{ background: '#f8fafc', minHeight: 'calc(100vh - 64px)' }}>
       <div style={dashStyles.header}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 15, fontWeight: 700 }}>GSE Dashboard</span>
