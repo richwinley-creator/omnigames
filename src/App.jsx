@@ -27,7 +27,7 @@ import SearchBar from './components/SearchBar';
 import Notifications from './components/Notifications';
 import './styles.css';
 
-/* ─── Public Layout ─── */
+/* ─── Public Layout (with site nav + footer) ─── */
 function PublicLayout() {
   return (
     <>
@@ -38,14 +38,9 @@ function PublicLayout() {
         <Route path="/games" element={<Games />} />
         <Route path="/markets" element={<Markets />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/dashboard/*" element={<DashboardShell />} />
-        <Route path="/portal/*" element={<Navigate to="/dashboard" />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
-      <Routes>
-        <Route path="/dashboard/*" element={null} />
-        <Route path="*" element={<SiteFooter />} />
-      </Routes>
+      <SiteFooter />
     </>
   );
 }
@@ -83,9 +78,9 @@ const dashStyles = {
   header: {
     background: '#0f172a', color: '#fff', padding: '0 24px',
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    flexWrap: 'wrap', gap: 8, position: 'sticky', top: 64, zIndex: 50,
+    gap: 12, position: 'sticky', top: 0, zIndex: 50,
     borderBottom: '1px solid rgba(255,255,255,0.06)',
-    height: 52,
+    height: 56,
   },
   nav: { display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' },
   tab: (active) => ({
@@ -96,7 +91,7 @@ const dashStyles = {
     textDecoration: 'none', display: 'inline-block',
     letterSpacing: '-0.01em',
   }),
-  content: { padding: '28px 28px 40px', maxWidth: 1400, margin: '0 auto', minHeight: 'calc(100vh - 128px)' },
+  content: { padding: '28px 28px 40px', maxWidth: 1400, margin: '0 auto', minHeight: 'calc(100vh - 56px)' },
   userInfo: {
     display: 'flex', alignItems: 'center', gap: 10,
   },
@@ -152,7 +147,7 @@ function DashboardShell() {
   const currentPath = location.pathname.replace(basePath, '').replace(/^\//, '') || '';
 
   return (
-    <div style={{ background: '#f8fafc', minHeight: 'calc(100vh - 64px)' }}>
+    <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
       <div style={dashStyles.header}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 15, fontWeight: 700 }}>GSE Dashboard</span>
@@ -204,6 +199,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/dashboard/*" element={<DashboardShell />} />
+        <Route path="/portal/*" element={<Navigate to="/dashboard" />} />
         <Route path="/*" element={<PublicLayout />} />
       </Routes>
     </BrowserRouter>
