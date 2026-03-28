@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import SiteNav from './components/SiteNav';
 import SiteFooter from './components/SiteFooter';
@@ -46,32 +46,33 @@ function PublicLayout() {
 }
 
 /* ─── Tab configs by role ─── */
+// primary: true = always visible; false = hamburger menu
 const ADMIN_TABS = [
-  { key: 'overview', label: 'Dashboard', path: '' },
-  { key: 'leads', label: 'Leads', path: 'leads' },
-  { key: 'tasks', label: 'Tasks', path: 'tasks' },
-  { key: 'locations', label: 'Locations', path: 'locations' },
-  { key: 'meter', label: 'Meter Import', path: 'meter' },
-  { key: 'fills', label: 'Fills', path: 'fills' },
-  { key: 'service', label: 'Service', path: 'service' },
-  { key: 'jvl', label: 'JVL Pipeline', path: 'jvl' },
-  { key: 'deposits', label: 'Deposits', path: 'deposits' },
-  { key: 'payments', label: 'Payments', path: 'payments' },
-  { key: 'analytics', label: 'Analytics', path: 'analytics' },
-  { key: 'bulk', label: 'Bulk Ops', path: 'bulk' },
-  { key: 'ramp', label: 'Ramp Plan', path: 'ramp' },
-  { key: 'audit', label: 'Audit Log', path: 'audit' },
-  { key: 'team', label: 'Team', path: 'team' },
+  { key: 'overview', label: 'Dashboard', path: '', primary: true },
+  { key: 'leads', label: 'Leads', path: 'leads', primary: true },
+  { key: 'tasks', label: 'Tasks', path: 'tasks', primary: true },
+  { key: 'locations', label: 'Locations', path: 'locations', primary: true },
+  { key: 'analytics', label: 'Analytics', path: 'analytics', primary: false },
+  { key: 'jvl', label: 'JVL Pipeline', path: 'jvl', primary: false },
+  { key: 'fills', label: 'Fills', path: 'fills', primary: false },
+  { key: 'service', label: 'Service', path: 'service', primary: false },
+  { key: 'deposits', label: 'Deposits', path: 'deposits', primary: false },
+  { key: 'payments', label: 'Payments', path: 'payments', primary: false },
+  { key: 'meter', label: 'Meter Import', path: 'meter', primary: false },
+  { key: 'bulk', label: 'Bulk Ops', path: 'bulk', primary: false },
+  { key: 'ramp', label: 'Ramp Plan', path: 'ramp', primary: false },
+  { key: 'audit', label: 'Audit Log', path: 'audit', primary: false },
+  { key: 'team', label: 'Team', path: 'team', primary: false },
 ];
 
 const TEAM_TABS = [
-  { key: 'overview', label: 'Dashboard', path: '' },
-  { key: 'leads', label: 'My Leads', path: 'leads' },
-  { key: 'tasks', label: 'My Tasks', path: 'tasks' },
-  { key: 'locations', label: 'Locations', path: 'locations' },
-  { key: 'fills', label: 'Fills', path: 'fills' },
-  { key: 'service', label: 'Service', path: 'service' },
-  { key: 'analytics', label: 'Analytics', path: 'analytics' },
+  { key: 'overview', label: 'Dashboard', path: '', primary: true },
+  { key: 'leads', label: 'My Leads', path: 'leads', primary: true },
+  { key: 'tasks', label: 'My Tasks', path: 'tasks', primary: true },
+  { key: 'locations', label: 'Locations', path: 'locations', primary: true },
+  { key: 'fills', label: 'Fills', path: 'fills', primary: false },
+  { key: 'service', label: 'Service', path: 'service', primary: false },
+  { key: 'analytics', label: 'Analytics', path: 'analytics', primary: false },
 ];
 
 const dashStyles = {
@@ -121,10 +122,20 @@ function DashboardShell() {
     } catch { return null; }
   });
   const [refreshKey, setRefreshKey] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const location = useLocation();
 
   const isAdmin = user?.role === 'admin';
   const refresh = () => setRefreshKey(k => k + 1);
+
+  // Close hamburger when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
 
   const handleLogin = (u) => {
     localStorage.setItem('gse_user', JSON.stringify(u));
@@ -144,7 +155,10 @@ function DashboardShell() {
   }
 
   const tabs = isAdmin ? ADMIN_TABS : TEAM_TABS;
+  const primaryTabs = tabs.filter(t => t.primary);
+  const secondaryTabs = tabs.filter(t => !t.primary);
   const currentPath = location.pathname.replace(basePath, '').replace(/^\//, '') || '';
+  const secondaryActive = secondaryTabs.some(t => t.path === currentPath);
 
   return (
     <div style={{ background: '#f8fafc', minHeight: '100vh' }}>
@@ -154,11 +168,52 @@ function DashboardShell() {
           <span style={dashStyles.roleBadge(isAdmin)}>{isAdmin ? 'Admin' : 'Team'}</span>
         </div>
         <nav style={dashStyles.nav}>
-          {tabs.map(t => (
+          {primaryTabs.map(t => (
             <Link key={t.key} to={`${basePath}/${t.path}`} style={dashStyles.tab(currentPath === t.path)}>
               {t.label}
             </Link>
           ))}
+          {secondaryTabs.length > 0 && (
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setMenuOpen(o => !o)}
+                style={{
+                  ...dashStyles.tab(secondaryActive || menuOpen),
+                  display: 'flex', alignItems: 'center', gap: 5, background:
+                    secondaryActive ? 'rgba(79,70,229,0.9)' : menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+                More
+              </button>
+              {menuOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: '#1e293b',
+                  borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', minWidth: 160,
+                  border: '1px solid rgba(255,255,255,0.08)', zIndex: 100, overflow: 'hidden',
+                }}>
+                  {secondaryTabs.map(t => (
+                    <Link
+                      key={t.key}
+                      to={`${basePath}/${t.path}`}
+                      onClick={() => setMenuOpen(false)}
+                      style={{
+                        display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 500,
+                        color: currentPath === t.path ? '#a5b4fc' : '#cbd5e1',
+                        background: currentPath === t.path ? 'rgba(79,70,229,0.15)' : 'transparent',
+                        textDecoration: 'none', transition: 'background 0.1s',
+                        borderLeft: currentPath === t.path ? '3px solid #6366f1' : '3px solid transparent',
+                      }}
+                    >
+                      {t.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
         <div style={dashStyles.userInfo}>
           <SearchBar onNavigate={(type, id) => {
