@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApi, apiPost, apiPut, apiDelete } from '../hooks/useApi';
+import { CountyBadge } from './Counties';
 
 const STAGES = [
   { key: 'prospect', label: 'Prospect', color: '#6b7280' },
@@ -44,7 +45,7 @@ const st = {
 };
 
 /* ── Kanban card ── */
-function KanbanCard({ lead, today, onStageChange, onEdit, onLost }) {
+function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost }) {
   const stage = STAGE_MAP[lead.stage] || STAGE_MAP.prospect;
   const next = nextStage(lead.stage);
   const isFollowUpDue = lead.follow_up_date && lead.follow_up_date <= today;
@@ -58,6 +59,11 @@ function KanbanCard({ lead, today, onStageChange, onEdit, onLost }) {
       <div style={{ fontWeight: 600, fontSize: 13, color: '#111827', marginBottom: 2 }}>{lead.name}</div>
       {lead.business_name && <div style={{ fontSize: 12, color: '#6b7280' }}>{lead.business_name}</div>}
       {lead.city && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{lead.city}{lead.state && lead.state !== 'TX' ? `, ${lead.state}` : ''}</div>}
+      {lead.county && (
+        <div style={{ marginTop: 5 }}>
+          <CountyBadge county={lead.county} state={lead.state} counties={counties || []} />
+        </div>
+      )}
       {lead.follow_up_date && (
         <div style={{ fontSize: 11, color: isFollowUpDue ? '#ef4444' : '#9ca3af', marginTop: 4, fontWeight: isFollowUpDue ? 600 : 400 }}>
           {isFollowUpDue ? '⚠️ Follow up: ' : '📅 '}{lead.follow_up_date}
@@ -96,6 +102,7 @@ export default function Leads({ user }) {
   const { data: leads, refetch } = useApi('/api/leads');
   const { data: users } = useApi(isAdmin ? '/api/auth/users' : null);
   const { data: summary, refetch: refetchSummary } = useApi('/api/leads/summary');
+  const { data: counties } = useApi('/api/counties');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -174,6 +181,7 @@ export default function Leads({ user }) {
                         key={lead.id}
                         lead={lead}
                         today={today}
+                        counties={counties}
                         onStageChange={handleStageChange}
                         onEdit={(l) => { setEditLead(l); setShowForm(true); }}
                         onLost={(l) => handleStageChange(l, 'lost')}
@@ -214,6 +222,7 @@ export default function Leads({ user }) {
                   <th style={st.th}>Name / Business</th>
                   <th style={st.th}>Contact</th>
                   <th style={st.th}>City</th>
+                  <th style={st.th}>County</th>
                   <th style={st.th}>Stage</th>
                   <th style={st.th}>Follow Up</th>
                   <th style={st.th}>Actions</th>
@@ -235,6 +244,11 @@ export default function Leads({ user }) {
                         <div style={{ fontSize: 11, color: '#6b7280' }}>{lead.email}</div>
                       </td>
                       <td style={st.td}>{lead.city}{lead.state && lead.state !== 'TX' ? `, ${lead.state}` : ''}</td>
+                      <td style={st.td}>
+                        {lead.county
+                          ? <CountyBadge county={lead.county} state={lead.state} counties={counties || []} />
+                          : <span style={{ fontSize: 11, color: '#d1d5db' }}>—</span>}
+                      </td>
                       <td style={st.td}><span style={st.badge(stage.color)}>{stage.label}</span></td>
                       <td style={{ ...st.td, color: lead.follow_up_date && lead.follow_up_date <= today ? '#ef4444' : '#374151' }}>
                         {lead.follow_up_date || '—'}
@@ -260,6 +274,7 @@ export default function Leads({ user }) {
         <LeadForm
           lead={editLead}
           users={users || []}
+          counties={counties || []}
           onClose={() => { setShowForm(false); setEditLead(null); }}
           onSave={refresh}
         />
@@ -268,15 +283,18 @@ export default function Leads({ user }) {
   );
 }
 
-function LeadForm({ lead, users, onClose, onSave }) {
+function LeadForm({ lead, users, counties, onClose, onSave }) {
   const [form, setForm] = useState({
     name: lead?.name || '', email: lead?.email || '', phone: lead?.phone || '',
     business_name: lead?.business_name || '', business_type: lead?.business_type || '',
-    city: lead?.city || '', state: lead?.state || 'TX', interest: lead?.interest || '',
+    city: lead?.city || '', state: lead?.state || 'TX', county: lead?.county || '',
+    interest: lead?.interest || '',
     brand_preference: lead?.brand_preference || '', machines_wanted: lead?.machines_wanted || '',
     notes: lead?.notes || '', stage: lead?.stage || 'prospect',
     assigned_to: lead?.assigned_to || '', follow_up_date: lead?.follow_up_date || '',
   });
+  const countyStatus = (counties || []).find(c => c.name.toLowerCase() === form.county.toLowerCase() && c.state.toLowerCase() === form.state.toLowerCase());
+  const countyStatusColor = countyStatus ? { approved: '#16a34a', restricted: '#dc2626', unknown: '#92400e' }[countyStatus.status] : null;
   const [saving, setSaving] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -314,6 +332,38 @@ function LeadForm({ lead, users, onClose, onSave }) {
             </select>
           </div>
           <div><label style={st.label}>City</label><input style={st.input} value={form.city} onChange={e => set('city', e.target.value)} /></div>
+        </div>
+        <div style={st.formRow}>
+          <div>
+            <label style={st.label}>County</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                style={{ ...st.input, marginBottom: countyStatus ? 4 : 12, paddingRight: countyStatus ? 90 : undefined }}
+                value={form.county}
+                onChange={e => set('county', e.target.value)}
+                placeholder="e.g. Nueces"
+                list="county-list"
+              />
+              <datalist id="county-list">
+                {(counties || []).map(c => <option key={c.id} value={c.name} />)}
+              </datalist>
+              {countyStatus && (
+                <span style={{
+                  position: 'absolute', right: 10, top: 9, fontSize: 11, fontWeight: 700,
+                  color: countyStatusColor, pointerEvents: 'none',
+                }}>
+                  {{ approved: '● Approved', restricted: '● Restricted', unknown: '● Unknown' }[countyStatus.status]}
+                </span>
+              )}
+            </div>
+            {countyStatus && countyStatus.regulations && (
+              <div style={{ fontSize: 11, color: countyStatusColor, marginBottom: 8 }}>{countyStatus.regulations}</div>
+            )}
+            {form.county && !countyStatus && (
+              <div style={{ fontSize: 11, color: '#f59e0b', marginBottom: 8 }}>⚠ County not yet researched — verify before proceeding</div>
+            )}
+          </div>
+          <div><label style={st.label}>State</label><input style={st.input} value={form.state} onChange={e => set('state', e.target.value)} placeholder="TX" /></div>
         </div>
         <div style={st.formRow}>
           <div>

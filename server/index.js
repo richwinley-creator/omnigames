@@ -28,6 +28,7 @@ import attachmentsRouter from './routes/attachments.js';
 import searchRouter from './routes/search.js';
 import notificationsRouter from './routes/notifications.js';
 import bulkRouter from './routes/bulk.js';
+import countiesRouter from './routes/counties.js';
 
 // --- Env validation ---
 const requiredEnvVars = ['JWT_SECRET'];
@@ -123,6 +124,7 @@ app.use('/api/attachments', authMiddleware, attachmentsRouter);
 app.use('/api/search', authMiddleware, searchRouter);
 app.use('/api/notifications', authMiddleware, notificationsRouter);
 app.use('/api/bulk', authMiddleware, bulkRouter);
+app.use('/api/counties', authMiddleware, countiesRouter);
 
 // --- Health check ---
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));

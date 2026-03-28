@@ -306,7 +306,26 @@ async function initDatabase() {
       read INTEGER DEFAULT 0,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    CREATE TABLE IF NOT EXISTS counties (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      state TEXT DEFAULT 'TX',
+      status TEXT DEFAULT 'unknown',
+      regulations TEXT,
+      contact_name TEXT,
+      contact_phone TEXT,
+      website TEXT,
+      notes TEXT,
+      researched_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW(),
+      UNIQUE(name, state)
+    );
   `);
+
+  // Add county column to leads if it doesn't exist (safe migration)
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS county TEXT`);
 
   // Seed default admin user if no users exist
   const userCount = await pool.query('SELECT COUNT(*) as c FROM users');

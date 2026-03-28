@@ -25,6 +25,7 @@ import AuditLog from './components/AuditLog';
 import BulkImport from './components/BulkImport';
 import SearchBar from './components/SearchBar';
 import Notifications from './components/Notifications';
+import Counties from './components/Counties';
 import './styles.css';
 
 /* ─── Public Layout (with site nav + footer) ─── */
@@ -52,6 +53,7 @@ const ADMIN_TABS = [
   { key: 'leads', label: 'Leads', path: 'leads', primary: true },
   { key: 'tasks', label: 'Tasks', path: 'tasks', primary: true },
   { key: 'locations', label: 'Locations', path: 'locations', primary: true },
+  { key: 'counties', label: 'Counties', path: 'counties', primary: false },
   { key: 'analytics', label: 'Analytics', path: 'analytics', primary: false },
   { key: 'jvl', label: 'JVL Pipeline', path: 'jvl', primary: false },
   { key: 'fills', label: 'Fills', path: 'fills', primary: false },
@@ -242,6 +244,7 @@ function DashboardShell() {
           {isAdmin && <Route path="jvl" element={<JVLPipeline />} />}
           {isAdmin && <Route path="ramp" element={<RampPlan />} />}
           {isAdmin && <Route path="audit" element={<AuditLog key={refreshKey} />} />}
+          {isAdmin && <Route path="counties" element={<Counties key={refreshKey} />} />}
           {isAdmin && <Route path="team" element={<Team key={refreshKey} />} />}
         </Routes>
       </main>
