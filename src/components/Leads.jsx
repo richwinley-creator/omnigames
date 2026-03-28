@@ -64,6 +64,16 @@ function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost }) {
           <CountyBadge county={lead.county} state={lead.state} counties={counties || []} />
         </div>
       )}
+      <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+        {lead.num_games && <span style={{ fontSize: 11, color: '#6b7280' }}>🎮 {lead.num_games} games</span>}
+        {lead.revenue_split && (
+          <span style={{
+            fontSize: 11, fontWeight: 700,
+            color: lead.revenue_split === '60/40' ? '#059669' : lead.revenue_split === '40/60' ? '#7c3aed' : '#f59e0b',
+          }}>{lead.revenue_split}</span>
+        )}
+        {lead.game_type && <span style={{ fontSize: 11, color: '#9ca3af' }}>{lead.game_type}</span>}
+      </div>
       {lead.follow_up_date && (
         <div style={{ fontSize: 11, color: isFollowUpDue ? '#ef4444' : '#9ca3af', marginTop: 4, fontWeight: isFollowUpDue ? 600 : 400 }}>
           {isFollowUpDue ? '⚠️ Follow up: ' : '📅 '}{lead.follow_up_date}
@@ -287,9 +297,15 @@ function LeadForm({ lead, users, counties, onClose, onSave }) {
   const [form, setForm] = useState({
     name: lead?.name || '', email: lead?.email || '', phone: lead?.phone || '',
     business_name: lead?.business_name || '', business_type: lead?.business_type || '',
+    address: lead?.address || '',
     city: lead?.city || '', state: lead?.state || 'TX', county: lead?.county || '',
     interest: lead?.interest || '',
-    brand_preference: lead?.brand_preference || '', machines_wanted: lead?.machines_wanted || '',
+    brand_preference: lead?.brand_preference || '',
+    machines_wanted: lead?.machines_wanted || '',
+    num_games: lead?.num_games || '', num_kiosks: lead?.num_kiosks || '',
+    game_type: lead?.game_type || '',
+    revenue_split: lead?.revenue_split || '',
+    lead_type: lead?.lead_type || 'house',
     notes: lead?.notes || '', stage: lead?.stage || 'prospect',
     assigned_to: lead?.assigned_to || '', follow_up_date: lead?.follow_up_date || '',
   });
@@ -381,12 +397,47 @@ function LeadForm({ lead, users, counties, onClose, onSave }) {
             </select>
           </div>
         </div>
+        <label style={st.label}>Full Address</label>
+        <input style={st.input} value={form.address} onChange={e => set('address', e.target.value)} placeholder="123 Main St, City, TX 75001" />
+
         <div style={st.formRow}>
           <div>
-            <label style={st.label}>Machines Wanted</label>
-            <select style={st.select} value={form.machines_wanted} onChange={e => set('machines_wanted', e.target.value)}>
+            <label style={st.label}>Revenue Split (Us / Them)</label>
+            <select style={st.select} value={form.revenue_split} onChange={e => set('revenue_split', e.target.value)}>
+              <option value="">TBD</option>
+              <option value="60/40">60/40 — We fill</option>
+              <option value="40/60">40/60 — They fill</option>
+              <option value="50/50">50/50 — Needs Rich approval</option>
+            </select>
+          </div>
+          <div>
+            <label style={st.label}>Lead Type</label>
+            <select style={st.select} value={form.lead_type} onChange={e => set('lead_type', e.target.value)}>
+              <option value="house">House Lead</option>
+              <option value="organic">Organic Lead</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={st.formRow}>
+          <div>
+            <label style={st.label}># of Games</label>
+            <input style={st.input} type="number" min="1" value={form.num_games} onChange={e => set('num_games', e.target.value)} placeholder="e.g. 5" />
+          </div>
+          <div>
+            <label style={st.label}># of Kiosks</label>
+            <input style={st.input} type="number" min="0" value={form.num_kiosks} onChange={e => set('num_kiosks', e.target.value)} placeholder="e.g. 1" />
+          </div>
+        </div>
+
+        <div style={st.formRow}>
+          <div>
+            <label style={st.label}>Game Type</label>
+            <select style={st.select} value={form.game_type} onChange={e => set('game_type', e.target.value)}>
               <option value="">Not Sure</option>
-              <option>1-2</option><option>3-5</option><option>6-10</option><option>10+</option>
+              <option value="Games">Games Only</option>
+              <option value="both">Games + JVL/Kiosk</option>
+              <option value="JVL">JVL Only</option>
             </select>
           </div>
           <div>
@@ -396,6 +447,7 @@ function LeadForm({ lead, users, counties, onClose, onSave }) {
             </select>
           </div>
         </div>
+
         <div style={st.formRow}>
           <div>
             <label style={st.label}>Assigned To</label>
