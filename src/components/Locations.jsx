@@ -20,7 +20,7 @@ const st = {
     padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none',
     background: active ? '#0f172a' : '#e5e7eb', color: active ? '#fff' : '#374151', transition: 'all 0.15s',
   }),
-  exportBtn: { padding: '8px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 },
+  exportBtn: { padding: '8px 18px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 },
   kpiRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 },
   kpi: (color) => ({
     background: '#fff', borderRadius: 12, padding: '16px 20px',

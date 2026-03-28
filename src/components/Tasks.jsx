@@ -17,10 +17,10 @@ const PRIORITY_MAP = Object.fromEntries(PRIORITIES.map(p => [p.key, p]));
 const STATUS_MAP = Object.fromEntries(STATUSES.map(s => [s.key, s]));
 
 const st = {
-  addBtn: { padding: '9px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  addBtn: { padding: '9px 18px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   pill: (active) => ({
     padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none',
-    background: active ? '#4f46e5' : '#e5e7eb', color: active ? '#fff' : '#374151', transition: 'all 0.15s',
+    background: active ? '#b8943d' : '#e5e7eb', color: active ? '#fff' : '#374151', transition: 'all 0.15s',
   }),
   stats: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginBottom: 20 },
   statCard: (color) => ({ background: color + '10', borderRadius: 10, padding: '12px 16px', textAlign: 'center', borderLeft: `3px solid ${color}` }),
@@ -148,7 +148,7 @@ export default function Tasks() {
             { label: 'Pending', val: (summary.byStatus || []).find(b => b.status === 'pending')?.count || 0 },
             { label: 'Completed', val: (summary.byStatus || []).find(b => b.status === 'completed')?.count || 0, green: true },
           ].map(k => (
-            <div key={k.label} className="d-kpi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4, borderTopColor: k.danger ? '#ef4444' : k.green ? '#10b981' : '#4f46e5' }}>
+            <div key={k.label} className="d-kpi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4, borderTopColor: k.danger ? '#ef4444' : k.green ? '#10b981' : '#b8943d' }}>
               <div className="d-kpi-label">{k.label}</div>
               <div className="d-kpi-value" style={{ fontSize: 24, color: k.danger ? '#ef4444' : k.green ? '#10b981' : '#111827' }}>{k.val}</div>
             </div>

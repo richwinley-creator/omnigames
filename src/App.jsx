@@ -89,7 +89,7 @@ const dashStyles = {
   tab: (active) => ({
     padding: '7px 14px', border: 'none', borderRadius: 8, cursor: 'pointer',
     fontSize: 13, fontWeight: active ? 600 : 500,
-    background: active ? 'rgba(79,70,229,0.9)' : 'transparent',
+    background: active ? 'rgba(184,148,61,0.85)' : 'transparent',
     color: active ? '#fff' : '#94a3b8', transition: 'all 0.15s',
     textDecoration: 'none', display: 'inline-block',
     letterSpacing: '-0.01em',
@@ -101,8 +101,8 @@ const dashStyles = {
   userName: { fontSize: 13, color: '#cbd5e1', fontWeight: 500 },
   roleBadge: (isAdmin) => ({
     fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 10,
-    background: isAdmin ? 'rgba(129,140,248,0.15)' : 'rgba(16,185,129,0.15)',
-    color: isAdmin ? '#a5b4fc' : '#6ee7b7',
+    background: isAdmin ? 'rgba(184,148,61,0.15)' : 'rgba(16,185,129,0.15)',
+    color: isAdmin ? '#d4b85c' : '#6ee7b7',
     textTransform: 'uppercase', letterSpacing: '0.05em',
   }),
   logoutBtn: {
@@ -182,7 +182,7 @@ function DashboardShell() {
                 style={{
                   ...dashStyles.tab(secondaryActive || menuOpen),
                   display: 'flex', alignItems: 'center', gap: 5, background:
-                    secondaryActive ? 'rgba(79,70,229,0.9)' : menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    secondaryActive ? 'rgba(184,148,61,0.85)' : menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent',
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -203,10 +203,10 @@ function DashboardShell() {
                       onClick={() => setMenuOpen(false)}
                       style={{
                         display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 500,
-                        color: currentPath === t.path ? '#a5b4fc' : '#cbd5e1',
-                        background: currentPath === t.path ? 'rgba(79,70,229,0.15)' : 'transparent',
+                        color: currentPath === t.path ? '#d4b85c' : '#cbd5e1',
+                        background: currentPath === t.path ? 'rgba(184,148,61,0.12)' : 'transparent',
                         textDecoration: 'none', transition: 'background 0.1s',
-                        borderLeft: currentPath === t.path ? '3px solid #6366f1' : '3px solid transparent',
+                        borderLeft: currentPath === t.path ? '3px solid #b8943d' : '3px solid transparent',
                       }}
                     >
                       {t.label}

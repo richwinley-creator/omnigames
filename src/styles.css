@@ -397,7 +397,7 @@ a:hover { color: var(--accent-light); }
   display: flex;
   align-items: center;
   gap: 16px;
-  border-top: 3px solid #4f46e5;
+  border-top: 3px solid #b8943d;
 }
 
 .d-kpi-icon {
@@ -407,8 +407,8 @@ a:hover { color: var(--accent-light); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(79,70,229,0.08);
-  color: #4f46e5;
+  background: rgba(184,148,61,0.1);
+  color: #b8943d;
   flex-shrink: 0;
 }
 
@@ -479,7 +479,7 @@ a:hover { color: var(--accent-light); }
 .d-stat-mini-val {
   font-size: 22px;
   font-weight: 800;
-  color: #4f46e5;
+  color: #b8943d;
 }
 
 .d-stat-mini-label {
@@ -491,7 +491,7 @@ a:hover { color: var(--accent-light); }
 
 .d-btn {
   padding: 9px 18px;
-  background: #4f46e5;
+  background: #b8943d;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -501,7 +501,7 @@ a:hover { color: var(--accent-light); }
   transition: background 0.15s;
 }
 
-.d-btn:hover { background: #4338ca; }
+.d-btn:hover { background: #9a7b2e; }
 
 .d-btn-ghost {
   padding: 6px 14px;

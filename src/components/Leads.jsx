@@ -23,7 +23,7 @@ const nextStage = (stage) => { const i = pipeIdx(stage); return i >= 0 && i < PI
 const prevStage = (stage) => { const i = pipeIdx(stage); return i > 0 ? PIPELINE[i - 1].key : null; };
 
 const st = {
-  addBtn: { padding: '9px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  addBtn: { padding: '9px 18px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   viewToggle: (active) => ({
     padding: '7px 14px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: 12, fontWeight: 500,
     background: active ? '#0f172a' : '#fff', color: active ? '#fff' : '#6b7280', transition: 'all 0.15s',
@@ -213,7 +213,7 @@ export default function Leads({ user }) {
         <div style={{ background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
           {/* Filter pills */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-            <button style={st.actionBtn(tableFilter === 'all' ? '#4f46e5' : '#6b7280')} onClick={() => setTableFilter('all')}>
+            <button style={st.actionBtn(tableFilter === 'all' ? '#b8943d' : '#6b7280')} onClick={() => setTableFilter('all')}>
               All ({activeLead.length})
             </button>
             {STAGES.map(s => {
@@ -265,7 +265,7 @@ export default function Leads({ user }) {
                       </td>
                       <td style={st.td}>
                         {prev && <button style={st.actionBtn('#6b7280')} onClick={() => handleStageChange(lead, prev)}>← Back</button>}
-                        {next && <button style={st.actionBtn('#4f46e5')} onClick={() => handleStageChange(lead, next)}>→ Next</button>}
+                        {next && <button style={st.actionBtn('#b8943d')} onClick={() => handleStageChange(lead, next)}>→ Next</button>}
                         <button style={st.actionBtn('#f59e0b')} onClick={() => { setEditLead(lead); setShowForm(true); }}>Edit</button>
                         {lead.stage !== 'lost' && lead.stage !== 'live' && lead.stage !== 'archived' && (
                           <button style={st.actionBtn('#ef4444')} onClick={() => handleStageChange(lead, 'lost')}>Lost</button>

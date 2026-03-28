@@ -92,7 +92,7 @@ export default function Dashboard({ isAdmin = true, user }) {
 
       {/* ── Today's Focus ── */}
       {hasFocus && (
-        <div className="d-card" style={{ borderTop: '3px solid #4f46e5', marginBottom: 20 }}>
+        <div className="d-card" style={{ borderTop: '3px solid #b8943d', marginBottom: 20 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
             {icons.clock} Today's Focus
           </div>
@@ -128,7 +128,7 @@ export default function Dashboard({ isAdmin = true, user }) {
                     );
                   })}
                 </div>
-                <Link to="/dashboard/tasks" style={{ display: 'inline-block', marginTop: 9, fontSize: 12, color: '#4f46e5', textDecoration: 'none', fontWeight: 500 }}>
+                <Link to="/dashboard/tasks" style={{ display: 'inline-block', marginTop: 9, fontSize: 12, color: '#b8943d', textDecoration: 'none', fontWeight: 500 }}>
                   View all tasks →
                 </Link>
               </div>
@@ -165,7 +165,7 @@ export default function Dashboard({ isAdmin = true, user }) {
                     );
                   })}
                 </div>
-                <Link to="/dashboard/leads" style={{ display: 'inline-block', marginTop: 9, fontSize: 12, color: '#4f46e5', textDecoration: 'none', fontWeight: 500 }}>
+                <Link to="/dashboard/leads" style={{ display: 'inline-block', marginTop: 9, fontSize: 12, color: '#b8943d', textDecoration: 'none', fontWeight: 500 }}>
                   View all leads →
                 </Link>
               </div>
@@ -218,12 +218,12 @@ export default function Dashboard({ isAdmin = true, user }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 7 }}>
             {icons.target} Monthly Target
           </div>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#4f46e5' }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#b8943d' }}>
             {fmtCompact(CURRENT_MONTHLY)} <span style={{ color: '#9ca3af', fontWeight: 400 }}>of {fmtCompact(TARGET)}</span>
           </span>
         </div>
         <div style={{ width: '100%', height: 8, background: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
-          <div style={{ width: `${Math.min(progressPct, 100)}%`, height: '100%', background: '#4f46e5', borderRadius: 10, transition: 'width 0.6s ease' }} />
+          <div style={{ width: `${Math.min(progressPct, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #b8943d, #d4b85c)', borderRadius: 10, transition: 'width 0.6s ease' }} />
         </div>
         <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 6 }}>
           {progressPct.toFixed(1)}% — {fmtCompact(TARGET - CURRENT_MONTHLY)} to go

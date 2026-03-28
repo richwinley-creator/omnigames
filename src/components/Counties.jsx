@@ -27,7 +27,7 @@ export function CountyBadge({ county, state = 'TX', counties = [] }) {
 }
 
 const st = {
-  addBtn: { padding: '9px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  addBtn: { padding: '9px 18px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   modal: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
   modalCard: { background: '#fff', borderRadius: 12, padding: 28, width: 500, maxHeight: '85vh', overflow: 'auto' },
   input: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' },
@@ -69,10 +69,10 @@ export default function Counties() {
         ))}
         <div style={{
           background: '#fff', borderRadius: 12, padding: '16px 20px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderLeft: '4px solid #4f46e5',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderLeft: '4px solid #b8943d',
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total</div>
-          <div style={{ fontSize: 30, fontWeight: 800, color: '#4f46e5', marginTop: 4 }}>{(counties || []).length}</div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: '#b8943d', marginTop: 4 }}>{(counties || []).length}</div>
           <div style={{ fontSize: 11, color: '#9ca3af' }}>tracked</div>
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function Counties() {
                   <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#6b7280', flexWrap: 'wrap', marginBottom: 10 }}>
                     {c.contact_name && <span>👤 {c.contact_name}</span>}
                     {c.contact_phone && <span>📞 {c.contact_phone}</span>}
-                    {c.website && <a href={c.website} target="_blank" rel="noreferrer" style={{ color: '#4f46e5' }}>🔗 Website</a>}
+                    {c.website && <a href={c.website} target="_blank" rel="noreferrer" style={{ color: '#b8943d' }}>🔗 Website</a>}
                   </div>
                   {c.notes && <div style={{ fontSize: 11, color: '#9ca3af', fontStyle: 'italic', marginBottom: 10 }}>{c.notes}</div>}
                   <div style={{ display: 'flex', gap: 6 }}>
