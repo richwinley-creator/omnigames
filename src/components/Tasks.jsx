@@ -140,24 +140,19 @@ export default function Tasks() {
     <div>
       {/* Stats */}
       {summary && (
-        <div style={st.stats}>
-          {STATUSES.map(s => {
-            const count = (summary.byStatus || []).find(b => b.status === s.key)?.count || 0;
-            return (
-              <div key={s.key} style={st.statCard(s.color)}>
-                <div style={{ ...st.statNum, color: s.color }}>{count}</div>
-                <div style={st.statLabel}>{s.label}</div>
-              </div>
-            );
-          })}
-          <div style={st.statCard('#ef4444')}>
-            <div style={{ ...st.statNum, color: '#ef4444' }}>{summary.overdue || 0}</div>
-            <div style={st.statLabel}>Overdue</div>
-          </div>
-          <div style={st.statCard('#f59e0b')}>
-            <div style={{ ...st.statNum, color: '#f59e0b' }}>{summary.dueToday || 0}</div>
-            <div style={st.statLabel}>Due Today</div>
-          </div>
+        <div className="d-kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', marginBottom: 16 }}>
+          {[
+            { label: 'Overdue', val: summary.overdue || 0, danger: true },
+            { label: 'Due Today', val: summary.dueToday || 0 },
+            { label: 'In Progress', val: (summary.byStatus || []).find(b => b.status === 'in_progress')?.count || 0 },
+            { label: 'Pending', val: (summary.byStatus || []).find(b => b.status === 'pending')?.count || 0 },
+            { label: 'Completed', val: (summary.byStatus || []).find(b => b.status === 'completed')?.count || 0, green: true },
+          ].map(k => (
+            <div key={k.label} className="d-kpi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4, borderTopColor: k.danger ? '#ef4444' : k.green ? '#10b981' : '#4f46e5' }}>
+              <div className="d-kpi-label">{k.label}</div>
+              <div className="d-kpi-value" style={{ fontSize: 24, color: k.danger ? '#ef4444' : k.green ? '#10b981' : '#111827' }}>{k.val}</div>
+            </div>
+          ))}
         </div>
       )}
 

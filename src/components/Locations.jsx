@@ -56,23 +56,18 @@ export default function Locations() {
   return (
     <div>
       {/* KPI summary row */}
-      <div style={st.kpiRow}>
-        <div style={st.kpi('#4f46e5')}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Locations</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>{activeLocs.length}</div>
-        </div>
-        <div style={st.kpi('#0891b2')}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Machines Running</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>{totalMachines}</div>
-        </div>
-        <div style={st.kpi('#059669')}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>GSE Share</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#059669', marginTop: 4 }}>{fmt(totalGse)}</div>
-        </div>
-        <div style={st.kpi('#7c3aed')}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Net</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>{fmt(totalNet)}</div>
-        </div>
+      <div className="d-kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+        {[
+          { label: 'Active Locations', val: activeLocs.length, fmt: false },
+          { label: 'Machines Running', val: totalMachines, fmt: false },
+          { label: 'GSE Revenue', val: fmt(totalGse), fmt: true, green: true },
+          { label: 'Total Net', val: fmt(totalNet), fmt: true },
+        ].map(k => (
+          <div key={k.label} className="d-kpi" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+            <div className="d-kpi-label">{k.label}</div>
+            <div className="d-kpi-value" style={{ fontSize: 24, color: k.green ? '#059669' : '#111827' }}>{k.val}</div>
+          </div>
+        ))}
       </div>
 
       <div style={st.section}>
