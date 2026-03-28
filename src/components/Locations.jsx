@@ -1,117 +1,158 @@
-import { useApi } from '../hooks/useApi';
-import { apiPut } from '../hooks/useApi';
+import { useState } from 'react';
+import { useApi, apiPut } from '../hooks/useApi';
 import { REVENUE_SEED } from '../data/locations';
-
-const styles = {
-  section: { background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
-  title: { fontSize: 18, fontWeight: 600, margin: '0 0 16px', color: '#1a1a2e' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', color: '#6b7280', fontWeight: 500, fontSize: 11, textTransform: 'uppercase' },
-  td: { padding: '10px 12px', borderBottom: '1px solid #f3f4f6' },
-  badge: (active) => ({
-    display: 'inline-block',
-    padding: '2px 10px',
-    borderRadius: 10,
-    fontSize: 11,
-    fontWeight: 600,
-    background: active ? '#dcfce7' : '#fee2e2',
-    color: active ? '#166534' : '#991b1b',
-    cursor: 'pointer',
-  }),
-  exportBtn: {
-    padding: '8px 20px',
-    background: '#4f46e5',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 500,
-  },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-};
 
 const fmt = (n) => '$' + (n || 0).toLocaleString();
 
+const st = {
+  section: { background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
+  th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', color: '#6b7280', fontWeight: 600, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.04em' },
+  td: { padding: '11px 12px', borderBottom: '1px solid #f3f4f6', fontSize: 13 },
+  statusBadge: (active) => ({
+    display: 'inline-flex', alignItems: 'center', gap: 5,
+    padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+    background: active ? '#dcfce7' : '#f3f4f6',
+    color: active ? '#166534' : '#9ca3af',
+    border: `1px solid ${active ? '#bbf7d0' : '#e5e7eb'}`,
+    userSelect: 'none',
+  }),
+  filterBtn: (active) => ({
+    padding: '6px 16px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none',
+    background: active ? '#0f172a' : '#e5e7eb', color: active ? '#fff' : '#374151', transition: 'all 0.15s',
+  }),
+  exportBtn: { padding: '8px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 500 },
+  kpiRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 20 },
+  kpi: (color) => ({
+    background: '#fff', borderRadius: 12, padding: '16px 20px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderLeft: `4px solid ${color}`,
+  }),
+};
+
 export default function Locations() {
   const { data: locations, refetch } = useApi('/api/locations');
+  const [statusFilter, setStatusFilter] = useState('active');
+
   const locs = locations || [];
 
-  // Merge seed revenue for locations without readings
   const locsWithRevenue = locs.map(l => {
     if (l.net > 0) return l;
     const seed = REVENUE_SEED.find(r => r.name === l.name);
     return seed ? { ...l, net: seed.net, gse_share: seed.gseRev, partner_share: seed.net - seed.gseRev } : l;
   });
 
+  const filtered = statusFilter === 'all' ? locsWithRevenue : locsWithRevenue.filter(l => l.status === statusFilter);
+  const activeLocs = locsWithRevenue.filter(l => l.status === 'active');
+  const inactiveLocs = locsWithRevenue.filter(l => l.status !== 'active');
+
+  const totalMachines = activeLocs.reduce((s, l) => s + l.machines, 0);
+  const totalNet = activeLocs.reduce((s, l) => s + (l.net || 0), 0);
+  const totalGse = activeLocs.reduce((s, l) => s + (l.gse_share || 0), 0);
+
   const toggleStatus = async (loc) => {
     await apiPut(`/api/locations/${loc.id}`, { status: loc.status === 'active' ? 'inactive' : 'active' });
     refetch();
   };
 
-  const totalMachines = locsWithRevenue.reduce((s, l) => s + l.machines, 0);
-  const totalNet = locsWithRevenue.reduce((s, l) => s + (l.net || 0), 0);
-  const totalGse = locsWithRevenue.reduce((s, l) => s + (l.gse_share || 0), 0);
-
   return (
-    <div style={styles.section}>
-      <div style={styles.header}>
-        <h2 style={styles.title}>{locs.length} Locations — {totalMachines} Machines</h2>
-        <a href="/api/export/excel" download>
-          <button style={styles.exportBtn}>Export Excel</button>
-        </a>
+    <div>
+      {/* KPI summary row */}
+      <div style={st.kpiRow}>
+        <div style={st.kpi('#4f46e5')}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Active Locations</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>{activeLocs.length}</div>
+        </div>
+        <div style={st.kpi('#0891b2')}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Machines Running</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>{totalMachines}</div>
+        </div>
+        <div style={st.kpi('#059669')}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>GSE Share</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#059669', marginTop: 4 }}>{fmt(totalGse)}</div>
+        </div>
+        <div style={st.kpi('#7c3aed')}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Net</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 4 }}>{fmt(totalNet)}</div>
+        </div>
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Location</th>
-              <th style={styles.th}>Partner</th>
-              <th style={{ ...styles.th, textAlign: 'center' }}>Machines</th>
-              <th style={{ ...styles.th, textAlign: 'center' }}>GSE %</th>
-              <th style={{ ...styles.th, textAlign: 'right' }}>Net</th>
-              <th style={{ ...styles.th, textAlign: 'right' }}>GSE Share</th>
-              <th style={{ ...styles.th, textAlign: 'right' }}>Partner Share</th>
-              <th style={{ ...styles.th, textAlign: 'center' }}>Type</th>
-              <th style={{ ...styles.th, textAlign: 'center' }}>Last Read</th>
-              <th style={{ ...styles.th, textAlign: 'center' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {locsWithRevenue.map(l => (
-              <tr key={l.id}>
-                <td style={{ ...styles.td, fontWeight: 500 }}>{l.name}</td>
-                <td style={styles.td}>{l.partner}</td>
-                <td style={{ ...styles.td, textAlign: 'center' }}>{l.machines}</td>
-                <td style={{ ...styles.td, textAlign: 'center' }}>{l.gse_pct}%</td>
-                <td style={{ ...styles.td, textAlign: 'right' }}>{fmt(l.net)}</td>
-                <td style={{ ...styles.td, textAlign: 'right', color: '#059669', fontWeight: 600 }}>{fmt(l.gse_share)}</td>
-                <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280' }}>{fmt(l.partner_share)}</td>
-                <td style={{ ...styles.td, textAlign: 'center', fontSize: 11 }}>{l.machine_type}</td>
-                <td style={{ ...styles.td, textAlign: 'center', color: '#6b7280' }}>{l.last_read_date || '—'}</td>
-                <td style={{ ...styles.td, textAlign: 'center' }}>
-                  <span style={styles.badge(l.status === 'active')} onClick={() => toggleStatus(l)}>
-                    {l.status === 'active' ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
+
+      <div style={st.section}>
+        {/* Header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <button style={st.filterBtn(statusFilter === 'active')} onClick={() => setStatusFilter('active')}>
+              Active ({activeLocs.length})
+            </button>
+            <button style={st.filterBtn(statusFilter === 'inactive')} onClick={() => setStatusFilter('inactive')}>
+              Inactive ({inactiveLocs.length})
+            </button>
+            <button style={st.filterBtn(statusFilter === 'all')} onClick={() => setStatusFilter('all')}>
+              All ({locs.length})
+            </button>
+          </div>
+          <a href="/api/export/excel" download style={{ textDecoration: 'none' }}>
+            <button style={st.exportBtn}>Export Excel</button>
+          </a>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={st.th}>Location</th>
+                <th style={st.th}>Partner</th>
+                <th style={{ ...st.th, textAlign: 'center' }}>Machines</th>
+                <th style={{ ...st.th, textAlign: 'center' }}>GSE %</th>
+                <th style={{ ...st.th, textAlign: 'right' }}>Net</th>
+                <th style={{ ...st.th, textAlign: 'right' }}>GSE Share</th>
+                <th style={{ ...st.th, textAlign: 'right' }}>Partner Share</th>
+                <th style={{ ...st.th, textAlign: 'center' }}>Last Read</th>
+                <th style={{ ...st.th, textAlign: 'center' }}>Status</th>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr style={{ background: '#f9fafb', fontWeight: 600 }}>
-              <td style={styles.td}>Totals</td>
-              <td style={styles.td}></td>
-              <td style={{ ...styles.td, textAlign: 'center' }}>{totalMachines}</td>
-              <td style={styles.td}></td>
-              <td style={{ ...styles.td, textAlign: 'right' }}>{fmt(totalNet)}</td>
-              <td style={{ ...styles.td, textAlign: 'right', color: '#059669' }}>{fmt(totalGse)}</td>
-              <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280' }}>{fmt(totalNet - totalGse)}</td>
-              <td style={styles.td}></td>
-              <td style={styles.td}></td>
-              <td style={styles.td}></td>
-            </tr>
-          </tfoot>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map((l, i) => (
+                <tr key={l.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                  <td style={{ ...st.td, fontWeight: 600, color: '#111827' }}>
+                    {l.name}
+                    {l.machine_type && <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400 }}>{l.machine_type}</div>}
+                  </td>
+                  <td style={st.td}>{l.partner}</td>
+                  <td style={{ ...st.td, textAlign: 'center', fontWeight: 600 }}>{l.machines}</td>
+                  <td style={{ ...st.td, textAlign: 'center' }}>{l.gse_pct}%</td>
+                  <td style={{ ...st.td, textAlign: 'right', fontFamily: 'monospace' }}>{fmt(l.net)}</td>
+                  <td style={{ ...st.td, textAlign: 'right', color: '#059669', fontWeight: 700, fontFamily: 'monospace' }}>{fmt(l.gse_share)}</td>
+                  <td style={{ ...st.td, textAlign: 'right', color: '#6b7280', fontFamily: 'monospace' }}>{fmt(l.partner_share)}</td>
+                  <td style={{ ...st.td, textAlign: 'center', color: '#6b7280' }}>{l.last_read_date || '—'}</td>
+                  <td style={{ ...st.td, textAlign: 'center' }}>
+                    <span style={st.statusBadge(l.status === 'active')} onClick={() => toggleStatus(l)} title="Click to toggle">
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: l.status === 'active' ? '#16a34a' : '#9ca3af', flexShrink: 0 }} />
+                      {l.status === 'active' ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            {filtered.length > 1 && (
+              <tfoot>
+                <tr style={{ background: '#f0f4ff', fontWeight: 700 }}>
+                  <td style={st.td}>Totals</td>
+                  <td style={st.td} />
+                  <td style={{ ...st.td, textAlign: 'center' }}>{filtered.reduce((s, l) => s + l.machines, 0)}</td>
+                  <td style={st.td} />
+                  <td style={{ ...st.td, textAlign: 'right', fontFamily: 'monospace' }}>{fmt(filtered.reduce((s, l) => s + (l.net || 0), 0))}</td>
+                  <td style={{ ...st.td, textAlign: 'right', color: '#059669', fontFamily: 'monospace' }}>{fmt(filtered.reduce((s, l) => s + (l.gse_share || 0), 0))}</td>
+                  <td style={{ ...st.td, textAlign: 'right', color: '#6b7280', fontFamily: 'monospace' }}>{fmt(filtered.reduce((s, l) => s + (l.partner_share || 0), 0))}</td>
+                  <td style={st.td} />
+                  <td style={st.td} />
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+
+        {filtered.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af' }}>No locations found.</div>
+        )}
       </div>
     </div>
   );

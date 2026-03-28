@@ -16,30 +16,96 @@ const STATUSES = [
 const PRIORITY_MAP = Object.fromEntries(PRIORITIES.map(p => [p.key, p]));
 const STATUS_MAP = Object.fromEntries(STATUSES.map(s => [s.key, s]));
 
-const styles = {
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 },
-  h2: { margin: 0, fontSize: 20, fontWeight: 700 },
-  addBtn: { padding: '8px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
-  card: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
-  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
-  th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontWeight: 600, color: '#374151', fontSize: 12 },
-  td: { padding: '10px 12px', borderBottom: '1px solid #f3f4f6', verticalAlign: 'top' },
-  badge: (color) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: color + '18', color }),
-  pills: { display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 },
-  pill: (active) => ({ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none', background: active ? '#4f46e5' : '#e5e7eb', color: active ? '#fff' : '#374151' }),
-  actionBtn: (color) => ({ padding: '4px 10px', borderRadius: 4, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, background: color + '18', color, marginRight: 4 }),
-  stats: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12, marginBottom: 20 },
-  statCard: (color) => ({ background: color + '10', borderRadius: 8, padding: '12px 16px', textAlign: 'center', borderLeft: `3px solid ${color}` }),
+const st = {
+  addBtn: { padding: '9px 18px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  pill: (active) => ({
+    padding: '5px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none',
+    background: active ? '#4f46e5' : '#e5e7eb', color: active ? '#fff' : '#374151', transition: 'all 0.15s',
+  }),
+  stats: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginBottom: 20 },
+  statCard: (color) => ({ background: color + '10', borderRadius: 10, padding: '12px 16px', textAlign: 'center', borderLeft: `3px solid ${color}` }),
   statNum: { fontSize: 24, fontWeight: 700 },
-  statLabel: { fontSize: 10, color: '#6b7280', textTransform: 'uppercase' },
+  statLabel: { fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' },
   modal: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
   modalCard: { background: '#fff', borderRadius: 12, padding: 28, width: 480, maxHeight: '85vh', overflow: 'auto' },
   input: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' },
   select: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box', background: '#fff' },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 3 },
   row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-  overdue: { background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 16px', marginBottom: 16, fontSize: 13, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 8 },
 };
+
+function TaskCard({ task, today, onStatusChange, onEdit }) {
+  const pri = PRIORITY_MAP[task.priority] || PRIORITY_MAP.normal;
+  const sta = STATUS_MAP[task.status] || STATUS_MAP.pending;
+  const isOverdue = task.due_date && task.due_date < today && task.status !== 'completed' && task.status !== 'cancelled';
+
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 12, padding: '16px 18px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+      borderLeft: `4px solid ${isOverdue ? '#ef4444' : pri.color}`,
+      display: 'flex', flexDirection: 'column', gap: 10,
+      opacity: task.status === 'cancelled' ? 0.55 : 1,
+    }}>
+      {/* Top row: title + status badge */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontWeight: 600, fontSize: 14, color: '#111827', lineHeight: 1.3 }}>{task.title}</div>
+        <span style={{
+          flexShrink: 0, fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 10,
+          background: sta.color + '18', color: sta.color, textTransform: 'uppercase', letterSpacing: '0.04em',
+        }}>{sta.label}</span>
+      </div>
+
+      {/* Description */}
+      {task.description && (
+        <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>{task.description}</div>
+      )}
+
+      {/* Meta row */}
+      <div style={{ display: 'flex', gap: 14, fontSize: 12, color: '#9ca3af', flexWrap: 'wrap' }}>
+        {task.assigned_name && <span>👤 {task.assigned_name}</span>}
+        {task.due_date && (
+          <span style={{ color: isOverdue ? '#ef4444' : '#9ca3af', fontWeight: isOverdue ? 600 : 400 }}>
+            {isOverdue ? '⚠️ Overdue · ' : '📅 '}{task.due_date}
+          </span>
+        )}
+        {task.entity_type && <span style={{ color: '#c4b5fd' }}>{task.entity_type} #{task.entity_id}</span>}
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+        {task.status === 'pending' && (
+          <button onClick={() => onStatusChange(task, 'in_progress')} style={{
+            flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 600, background: '#3b82f6', color: '#fff',
+          }}>▶ Start</button>
+        )}
+        {task.status === 'in_progress' && (
+          <button onClick={() => onStatusChange(task, 'completed')} style={{
+            flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 600, background: '#10b981', color: '#fff',
+          }}>✓ Done</button>
+        )}
+        {task.status === 'completed' && (
+          <button onClick={() => onStatusChange(task, 'pending')} style={{
+            flex: 1, padding: '7px 0', borderRadius: 7, border: 'none', cursor: 'pointer',
+            fontSize: 13, fontWeight: 600, background: '#f3f4f6', color: '#374151',
+          }}>↩ Reopen</button>
+        )}
+        <button onClick={() => onEdit(task)} style={{
+          padding: '7px 14px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
+          fontSize: 13, fontWeight: 500, background: '#fff', color: '#374151',
+        }}>Edit</button>
+        {task.status !== 'completed' && task.status !== 'cancelled' && (
+          <button onClick={() => onStatusChange(task, 'cancelled')} style={{
+            padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
+            fontSize: 12, fontWeight: 500, background: '#f3f4f6', color: '#9ca3af',
+          }}>✕</button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Tasks() {
   const [filter, setFilter] = useState('active');
@@ -50,14 +116,20 @@ export default function Tasks() {
   const { data: users } = useApi('/api/auth/users');
 
   const today = new Date().toISOString().split('T')[0];
+
   const filtered = (tasks || []).filter(t => {
     if (filter === 'active') return t.status !== 'completed' && t.status !== 'cancelled';
     if (filter === 'overdue') return t.due_date && t.due_date < today && t.status !== 'completed' && t.status !== 'cancelled';
     return t.status === filter;
   });
 
+  // Group by priority for active/overdue views
+  const useGrouped = filter === 'active' || filter === 'overdue';
+  const groups = useGrouped
+    ? PRIORITIES.map(p => ({ ...p, tasks: filtered.filter(t => t.priority === p.key) })).filter(g => g.tasks.length > 0)
+    : [{ key: 'all', label: null, color: '#6b7280', tasks: filtered }];
+
   const refresh = () => { refetch(); refetchSummary(); };
-  const isOverdue = (t) => t.due_date && t.due_date < today && t.status !== 'completed' && t.status !== 'cancelled';
 
   const handleStatusChange = async (task, newStatus) => {
     await apiPut(`/api/tasks/${task.id}`, { status: newStatus });
@@ -66,97 +138,73 @@ export default function Tasks() {
 
   return (
     <div>
+      {/* Stats */}
       {summary && (
-        <div style={styles.stats}>
+        <div style={st.stats}>
           {STATUSES.map(s => {
             const count = (summary.byStatus || []).find(b => b.status === s.key)?.count || 0;
             return (
-              <div key={s.key} style={styles.statCard(s.color)}>
-                <div style={{ ...styles.statNum, color: s.color }}>{count}</div>
-                <div style={styles.statLabel}>{s.label}</div>
+              <div key={s.key} style={st.statCard(s.color)}>
+                <div style={{ ...st.statNum, color: s.color }}>{count}</div>
+                <div style={st.statLabel}>{s.label}</div>
               </div>
             );
           })}
-          <div style={styles.statCard('#ef4444')}>
-            <div style={{ ...styles.statNum, color: '#ef4444' }}>{summary.overdue || 0}</div>
-            <div style={styles.statLabel}>Overdue</div>
+          <div style={st.statCard('#ef4444')}>
+            <div style={{ ...st.statNum, color: '#ef4444' }}>{summary.overdue || 0}</div>
+            <div style={st.statLabel}>Overdue</div>
           </div>
-          <div style={styles.statCard('#f59e0b')}>
-            <div style={{ ...styles.statNum, color: '#f59e0b' }}>{summary.dueToday || 0}</div>
-            <div style={styles.statLabel}>Due Today</div>
+          <div style={st.statCard('#f59e0b')}>
+            <div style={{ ...st.statNum, color: '#f59e0b' }}>{summary.dueToday || 0}</div>
+            <div style={st.statLabel}>Due Today</div>
           </div>
         </div>
       )}
 
-      {summary?.overdue > 0 && (
-        <div style={styles.overdue}>⚠️ You have {summary.overdue} overdue task{summary.overdue > 1 ? 's' : ''} that need attention!</div>
-      )}
-
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <h2 style={styles.h2}>Tasks</h2>
-          <button style={styles.addBtn} onClick={() => { setEditTask(null); setShowForm(true); }}>+ New Task</button>
-        </div>
-
-        <div style={styles.pills}>
-          {[{ key: 'active', label: 'Active' }, { key: 'overdue', label: 'Overdue' },
-            ...STATUSES].map(s => (
-            <button key={s.key} style={styles.pill(filter === s.key)} onClick={() => setFilter(s.key)}>
-              {s.label} {s.key === 'overdue' ? `(${summary?.overdue || 0})` : ''}
-            </button>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {[
+            { key: 'active', label: 'Active' },
+            { key: 'overdue', label: `Overdue${summary?.overdue ? ` (${summary.overdue})` : ''}` },
+            ...STATUSES,
+          ].map(s => (
+            <button key={s.key} style={st.pill(filter === s.key)} onClick={() => setFilter(s.key)}>{s.label}</button>
           ))}
         </div>
-
-        <div style={{ overflowX: 'auto' }}>
-          <table style={styles.table}>
-            <thead>
-              <tr>
-                <th style={styles.th}>Task</th>
-                <th style={styles.th}>Related To</th>
-                <th style={styles.th}>Assigned</th>
-                <th style={styles.th}>Priority</th>
-                <th style={styles.th}>Due Date</th>
-                <th style={styles.th}>Status</th>
-                <th style={styles.th}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(task => {
-                const pri = PRIORITY_MAP[task.priority] || PRIORITY_MAP.normal;
-                const sta = STATUS_MAP[task.status] || STATUS_MAP.pending;
-                const overdue = isOverdue(task);
-                return (
-                  <tr key={task.id} style={overdue ? { background: '#fef2f2' } : {}}>
-                    <td style={styles.td}>
-                      <div style={{ fontWeight: 600 }}>{task.title}</div>
-                      {task.description && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{task.description.slice(0, 80)}</div>}
-                    </td>
-                    <td style={styles.td}>
-                      {task.entity_type ? <span style={{ fontSize: 11, color: '#6b7280' }}>{task.entity_type} #{task.entity_id}</span> : '—'}
-                    </td>
-                    <td style={styles.td}>{task.assigned_name || '—'}</td>
-                    <td style={styles.td}><span style={styles.badge(pri.color)}>{pri.label}</span></td>
-                    <td style={{ ...styles.td, color: overdue ? '#ef4444' : '#374151', fontWeight: overdue ? 600 : 400 }}>
-                      {task.due_date || '—'}{overdue && ' ⚠️'}
-                    </td>
-                    <td style={styles.td}><span style={styles.badge(sta.color)}>{sta.label}</span></td>
-                    <td style={styles.td}>
-                      {task.status === 'pending' && <button style={styles.actionBtn('#3b82f6')} onClick={() => handleStatusChange(task, 'in_progress')}>Start</button>}
-                      {task.status === 'in_progress' && <button style={styles.actionBtn('#22c55e')} onClick={() => handleStatusChange(task, 'completed')}>Complete</button>}
-                      {task.status === 'completed' && <button style={styles.actionBtn('#f59e0b')} onClick={() => handleStatusChange(task, 'pending')}>Reopen</button>}
-                      <button style={styles.actionBtn('#6b7280')} onClick={() => { setEditTask(task); setShowForm(true); }}>Edit</button>
-                      {task.status !== 'completed' && <button style={styles.actionBtn('#9ca3af')} onClick={() => handleStatusChange(task, 'cancelled')}>Cancel</button>}
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ ...styles.td, textAlign: 'center', color: '#9ca3af', padding: 40 }}>No tasks found.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <button style={st.addBtn} onClick={() => { setEditTask(null); setShowForm(true); }}>+ New Task</button>
       </div>
+
+      {/* Cards */}
+      {filtered.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: 12, padding: 48, textAlign: 'center', color: '#9ca3af', boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+          No tasks here. You're all caught up!
+        </div>
+      ) : (
+        groups.map(group => (
+          <div key={group.key} style={{ marginBottom: 24 }}>
+            {group.label && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: group.color }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {group.label} · {group.tasks.length}
+                </span>
+              </div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+              {group.tasks.map(task => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  today={today}
+                  onStatusChange={handleStatusChange}
+                  onEdit={(t) => { setEditTask(t); setShowForm(true); }}
+                />
+              ))}
+            </div>
+          </div>
+        ))
+      )}
 
       {showForm && <TaskForm task={editTask} users={users || []} onClose={() => { setShowForm(false); setEditTask(null); }} onSave={refresh} />}
     </div>
@@ -188,44 +236,44 @@ function TaskForm({ task, users, onClose, onSave }) {
   };
 
   return (
-    <div style={styles.modal} onClick={onClose}>
-      <form style={styles.modalCard} onClick={e => e.stopPropagation()} onSubmit={handleSave}>
+    <div style={st.modal} onClick={onClose}>
+      <form style={st.modalCard} onClick={e => e.stopPropagation()} onSubmit={handleSave}>
         <h3 style={{ margin: '0 0 20px', fontSize: 18 }}>{task ? 'Edit Task' : 'New Task'}</h3>
-        <label style={styles.label}>Title *</label>
-        <input style={styles.input} value={form.title} onChange={e => set('title', e.target.value)} required />
-        <label style={styles.label}>Description</label>
-        <textarea style={{ ...styles.input, height: 60, resize: 'vertical' }} value={form.description} onChange={e => set('description', e.target.value)} />
-        <div style={styles.row}>
+        <label style={st.label}>Title *</label>
+        <input style={st.input} value={form.title} onChange={e => set('title', e.target.value)} required />
+        <label style={st.label}>Description</label>
+        <textarea style={{ ...st.input, height: 60, resize: 'vertical' }} value={form.description} onChange={e => set('description', e.target.value)} />
+        <div style={st.row}>
           <div>
-            <label style={styles.label}>Assigned To</label>
-            <select style={styles.select} value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}>
+            <label style={st.label}>Assigned To</label>
+            <select style={st.select} value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}>
               <option value="">Unassigned</option>
               {users.filter(u => u.active).map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
             </select>
           </div>
           <div>
-            <label style={styles.label}>Priority</label>
-            <select style={styles.select} value={form.priority} onChange={e => set('priority', e.target.value)}>
+            <label style={st.label}>Priority</label>
+            <select style={st.select} value={form.priority} onChange={e => set('priority', e.target.value)}>
               {PRIORITIES.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
             </select>
           </div>
         </div>
-        <div style={styles.row}>
+        <div style={st.row}>
           <div>
-            <label style={styles.label}>Due Date</label>
-            <input style={styles.input} type="date" value={form.due_date} onChange={e => set('due_date', e.target.value)} />
+            <label style={st.label}>Due Date</label>
+            <input style={st.input} type="date" value={form.due_date} onChange={e => set('due_date', e.target.value)} />
           </div>
           <div>
-            <label style={styles.label}>Status</label>
-            <select style={styles.select} value={form.status} onChange={e => set('status', e.target.value)}>
+            <label style={st.label}>Status</label>
+            <select style={st.select} value={form.status} onChange={e => set('status', e.target.value)}>
               {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
           </div>
         </div>
-        <div style={styles.row}>
+        <div style={st.row}>
           <div>
-            <label style={styles.label}>Related Type</label>
-            <select style={styles.select} value={form.entity_type} onChange={e => set('entity_type', e.target.value)}>
+            <label style={st.label}>Related Type</label>
+            <select style={st.select} value={form.entity_type} onChange={e => set('entity_type', e.target.value)}>
               <option value="">None</option>
               <option value="lead">Lead</option>
               <option value="location">Location</option>
@@ -234,13 +282,13 @@ function TaskForm({ task, users, onClose, onSave }) {
             </select>
           </div>
           <div>
-            <label style={styles.label}>Related ID</label>
-            <input style={styles.input} type="number" value={form.entity_id} onChange={e => set('entity_id', e.target.value)} placeholder="#" />
+            <label style={st.label}>Related ID</label>
+            <input style={st.input} type="number" value={form.entity_id} onChange={e => set('entity_id', e.target.value)} placeholder="#" />
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
-          <button type="button" style={{ ...styles.addBtn, background: '#e5e7eb', color: '#374151' }} onClick={onClose}>Cancel</button>
-          <button style={{ ...styles.addBtn, opacity: saving ? 0.7 : 1 }} disabled={saving}>{saving ? 'Saving...' : 'Save Task'}</button>
+          <button type="button" style={{ ...st.addBtn, background: '#e5e7eb', color: '#374151' }} onClick={onClose}>Cancel</button>
+          <button style={{ ...st.addBtn, opacity: saving ? 0.7 : 1 }} disabled={saving}>{saving ? 'Saving...' : 'Save Task'}</button>
         </div>
       </form>
     </div>
