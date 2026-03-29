@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useApi, apiPost, apiPut, apiDelete } from '../hooks/useApi';
+import { useToast } from './Toast';
 
 const styles = {
   card: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
@@ -23,16 +24,19 @@ export default function Team() {
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const { data: users, refetch } = useApi('/api/auth/users');
+  const toast = useToast();
 
   const toggleActive = async (user) => {
     await apiPut(`/api/auth/users/${user.id}`, { active: !user.active });
     refetch();
+    toast(`${user.name} ${user.active ? 'disabled' : 'enabled'}`, user.active ? 'info' : 'success');
   };
 
   const changeRole = async (user) => {
     const newRole = user.role === 'admin' ? 'team' : 'admin';
     await apiPut(`/api/auth/users/${user.id}`, { role: newRole });
     refetch();
+    toast(`${user.name} role changed to ${newRole}`, 'info');
   };
 
   return (
@@ -74,6 +78,7 @@ export default function Team() {
                     if (confirm(`Delete ${u.name}? This cannot be undone.`)) {
                       await apiDelete(`/api/auth/users/${u.id}`);
                       refetch();
+                      toast(`${u.name} deleted`, 'error');
                     }
                   }}>Delete</button>
                 )}
@@ -87,7 +92,12 @@ export default function Team() {
         <UserForm
           user={editUser}
           onClose={() => { setShowForm(false); setEditUser(null); }}
-          onSave={() => { refetch(); setShowForm(false); setEditUser(null); }}
+          onSave={(isEdit, name) => {
+            refetch();
+            setShowForm(false);
+            setEditUser(null);
+            toast(isEdit ? `${name} updated` : `${name} added to team`, 'success');
+          }}
         />
       )}
     </div>
@@ -119,7 +129,7 @@ function UserForm({ user, onClose, onSave }) {
         if (!form.password) { setMsg('Password is required'); setSaving(false); return; }
         await apiPost('/api/auth/users', form);
       }
-      onSave();
+      onSave(isEdit, form.name);
     } catch (e) { setMsg(e.message); } finally { setSaving(false); }
   };
 

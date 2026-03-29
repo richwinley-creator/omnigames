@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useApi, apiPost, apiPut, apiDelete } from '../hooks/useApi';
 import { CountyBadge } from './Counties';
+import { useToast } from './Toast';
+import Skeleton from './Skeleton';
 
 const STAGES = [
   { key: 'prospect', label: 'Prospect', color: '#6b7280' },
@@ -110,18 +112,23 @@ export default function Leads({ user }) {
   const [tableFilter, setTableFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editLead, setEditLead] = useState(null);
-  const { data: leads, refetch } = useApi('/api/leads');
+  const { data: leads, loading, refetch } = useApi('/api/leads');
   const { data: users } = useApi(isAdmin ? '/api/auth/users' : null);
   const { data: summary, refetch: refetchSummary } = useApi('/api/leads/summary');
   const { data: counties } = useApi('/api/counties');
+  const toast = useToast();
 
   const today = new Date().toISOString().split('T')[0];
 
   const refresh = () => { refetch(); refetchSummary(); };
 
   const handleStageChange = async (lead, newStage) => {
+    const prevStageLabel = STAGE_MAP[lead.stage]?.label || lead.stage;
+    const newStageLabel = STAGE_MAP[newStage]?.label || newStage;
     await apiPut(`/api/leads/${lead.id}`, { stage: newStage });
     refresh();
+    if (newStage === 'lost') toast(`${lead.name} marked as Lost`, 'error');
+    else toast(`${lead.name} moved to ${newStageLabel}`, 'success');
   };
 
   const handleDelete = async (id) => {
@@ -295,13 +302,72 @@ export default function Leads({ user }) {
 }
 
 /* ═══════════════════════════════════════════════
+   Activity Timeline per lead
+   ═══════════════════════════════════════════════ */
+function ActivityTimeline({ leadId }) {
+  const [open, setOpen] = useState(false);
+  const { data: activities, loading } = useApi(open ? `/api/activities?entity_type=lead&entity_id=${leadId}` : null);
+
+  const fmt = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' · ' +
+      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  };
+
+  const TYPE_ICONS = {
+    note: '📝', stage_change: '→', follow_up: '📅',
+    call: '📞', email: '✉', created: '✨',
+  };
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none',
+          cursor: 'pointer', color: '#9ca3af', fontSize: 12, fontWeight: 500, padding: '2px 0',
+        }}
+      >
+        <span style={{ transform: open ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▶</span>
+        Activity
+      </button>
+      {open && (
+        <div style={{ marginTop: 8, borderLeft: '2px solid #e5e7eb', paddingLeft: 14 }}>
+          {loading ? (
+            <Skeleton count={3} height={14} gap={8} />
+          ) : (activities || []).length === 0 ? (
+            <div style={{ fontSize: 12, color: '#d1d5db', padding: '4px 0' }}>No activity recorded yet.</div>
+          ) : (
+            [...(activities || [])].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).map((act, i) => (
+              <div key={act.id || i} style={{ marginBottom: 10, position: 'relative' }}>
+                <div style={{
+                  position: 'absolute', left: -19, top: 2,
+                  width: 8, height: 8, borderRadius: '50%', background: '#b8943d', border: '2px solid #fff',
+                }} />
+                <div style={{ fontSize: 11, color: '#9ca3af', marginBottom: 2 }}>{fmt(act.created_at)}</div>
+                <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.4 }}>
+                  <span style={{ marginRight: 5 }}>{TYPE_ICONS[act.activity_type] || '•'}</span>
+                  {act.description || act.activity_type}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
    Simple Team View — call list + quick actions
    ═══════════════════════════════════════════════ */
 function SimpleLeadsView({ user }) {
-  const { data: leads, refetch } = useApi('/api/leads');
+  const { data: leads, loading, refetch } = useApi('/api/leads');
   const [showNotes, setShowNotes] = useState(null);
   const [noteText, setNoteText] = useState('');
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -317,18 +383,23 @@ function SimpleLeadsView({ user }) {
     if (!next) return;
     await apiPut(`/api/leads/${lead.id}`, { stage: next });
     refetch();
+    toast(`${lead.name} moved to ${STAGE_MAP[next]?.label}`, 'success');
   };
 
   const markLost = async (lead) => {
     await apiPut(`/api/leads/${lead.id}`, { stage: 'lost' });
     refetch();
+    toast(`${lead.name} marked as Lost`, 'error');
   };
 
   const setFollowUp = async (lead, days) => {
     const d = new Date();
     d.setDate(d.getDate() + days);
-    await apiPut(`/api/leads/${lead.id}`, { follow_up_date: d.toISOString().split('T')[0] });
+    const dateStr = d.toISOString().split('T')[0];
+    await apiPut(`/api/leads/${lead.id}`, { follow_up_date: dateStr });
     refetch();
+    const label = days === 1 ? 'tomorrow' : days === 3 ? 'in 3 days' : 'next week';
+    toast(`Follow-up set for ${label}`, 'info');
   };
 
   const saveNote = async (lead) => {
@@ -337,11 +408,26 @@ function SimpleLeadsView({ user }) {
     const existingNotes = lead.notes || '';
     const stamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const updated = `[${stamp}] ${noteText.trim()}${existingNotes ? '\n' + existingNotes : ''}`;
-    await apiPut(`/api/leads/${lead.id}`, { notes: updated });
-    setNoteText('');
-    setShowNotes(null);
-    setSaving(false);
-    refetch();
+    try {
+      await apiPut(`/api/leads/${lead.id}`, { notes: updated });
+      // Also post to activity log
+      try {
+        await apiPost('/api/activities', {
+          entity_type: 'lead',
+          entity_id: lead.id,
+          activity_type: 'note',
+          description: noteText.trim(),
+        });
+      } catch (_) { /* activities endpoint optional */ }
+      setNoteText('');
+      setShowNotes(null);
+      refetch();
+      toast('Note saved', 'success');
+    } catch (e) {
+      toast('Failed to save note', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const LeadCard = ({ lead, urgent }) => {
@@ -351,7 +437,7 @@ function SimpleLeadsView({ user }) {
     const isNotesOpen = showNotes === lead.id;
 
     return (
-      <div style={{
+      <div className="lead-card" style={{
         background: '#fff', borderRadius: 12, padding: '16px 18px', marginBottom: 10,
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         borderLeft: `4px solid ${urgent ? '#ef4444' : stage.color}`,
@@ -385,6 +471,7 @@ function SimpleLeadsView({ user }) {
             <a href={`tel:${lead.phone}`} style={{
               padding: '8px 16px', borderRadius: 8, background: '#059669', color: '#fff',
               fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+              minHeight: 44,
             }}>
               📞 Call {lead.phone}
             </a>
@@ -393,6 +480,7 @@ function SimpleLeadsView({ user }) {
             <a href={`sms:${lead.phone}`} style={{
               padding: '8px 16px', borderRadius: 8, background: '#3b82f6', color: '#fff',
               fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+              minHeight: 44,
             }}>
               💬 Text
             </a>
@@ -400,7 +488,8 @@ function SimpleLeadsView({ user }) {
           {lead.email && (
             <a href={`mailto:${lead.email}`} style={{
               padding: '8px 14px', borderRadius: 8, background: '#f3f4f6', color: '#374151',
-              fontSize: 13, fontWeight: 500, textDecoration: 'none',
+              fontSize: 13, fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center',
+              minHeight: 44,
             }}>
               ✉ Email
             </a>
@@ -412,30 +501,31 @@ function SimpleLeadsView({ user }) {
           {next && (
             <button onClick={() => advanceLead(lead)} style={{
               padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 600, background: '#b8943d', color: '#fff',
+              fontSize: 12, fontWeight: 600, background: '#b8943d', color: '#fff', minHeight: 36,
             }}>
               ✓ Move to {STAGE_MAP[next]?.label}
             </button>
           )}
           <button onClick={() => setFollowUp(lead, 1)} style={{
             padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
-            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
+            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151', minHeight: 36,
           }}>Tomorrow</button>
           <button onClick={() => setFollowUp(lead, 3)} style={{
             padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
-            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
+            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151', minHeight: 36,
           }}>In 3 Days</button>
           <button onClick={() => setFollowUp(lead, 7)} style={{
             padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
-            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
+            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151', minHeight: 36,
           }}>Next Week</button>
           <button onClick={() => { setShowNotes(isNotesOpen ? null : lead.id); setNoteText(''); }} style={{
             padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
             fontSize: 12, fontWeight: 500, background: isNotesOpen ? '#0f172a' : '#fff', color: isNotesOpen ? '#fff' : '#374151',
+            minHeight: 36,
           }}>📝 Note</button>
           <button onClick={() => markLost(lead)} style={{
             padding: '7px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
-            fontSize: 12, fontWeight: 500, background: '#fef2f2', color: '#ef4444',
+            fontSize: 12, fontWeight: 500, background: '#fef2f2', color: '#ef4444', minHeight: 36,
           }}>✕ Lost</button>
         </div>
 
@@ -456,7 +546,7 @@ function SimpleLeadsView({ user }) {
             <button onClick={() => saveNote(lead)} disabled={saving} style={{
               padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
               fontSize: 13, fontWeight: 600, background: '#b8943d', color: '#fff',
-              opacity: saving ? 0.7 : 1,
+              opacity: saving ? 0.7 : 1, minHeight: 44,
             }}>{saving ? '...' : 'Save'}</button>
           </div>
         )}
@@ -469,6 +559,9 @@ function SimpleLeadsView({ user }) {
             maxHeight: 60, overflow: 'hidden',
           }}>{lead.notes}</div>
         )}
+
+        {/* Activity timeline */}
+        <ActivityTimeline leadId={lead.id} />
       </div>
     );
   };
@@ -500,8 +593,17 @@ function SimpleLeadsView({ user }) {
         ))}
       </div>
 
+      {/* Loading skeleton */}
+      {loading && (
+        <div>
+          <Skeleton variant="card" style={{ marginBottom: 10 }} />
+          <Skeleton variant="card" style={{ marginBottom: 10 }} />
+          <Skeleton variant="card" />
+        </div>
+      )}
+
       {/* Due Today / Overdue */}
-      {followUps.length > 0 && (
+      {!loading && followUps.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
             🔥 Needs Attention ({followUps.length})
@@ -511,7 +613,7 @@ function SimpleLeadsView({ user }) {
       )}
 
       {/* New Prospects */}
-      {newProspects.length > 0 && (
+      {!loading && newProspects.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 10 }}>
             New Prospects ({newProspects.length})
@@ -521,7 +623,7 @@ function SimpleLeadsView({ user }) {
       )}
 
       {/* In Progress */}
-      {inProgress.length > 0 && (
+      {!loading && inProgress.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 10 }}>
             In Progress ({inProgress.length})
@@ -530,12 +632,37 @@ function SimpleLeadsView({ user }) {
         </div>
       )}
 
-      {/* Empty state */}
-      {myLeads.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 4 }}>No leads assigned yet</div>
-          <div style={{ fontSize: 13 }}>Ask your admin to assign leads to you.</div>
+      {/* Empty state — coaching-oriented */}
+      {!loading && myLeads.length === 0 && (
+        <div style={{
+          background: '#fff', borderRadius: 16, padding: '60px 32px',
+          textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: '#111827', marginBottom: 8 }}>
+            No leads assigned yet
+          </div>
+          <div style={{ fontSize: 14, color: '#6b7280', maxWidth: 340, margin: '0 auto 24px', lineHeight: 1.6 }}>
+            Every deal starts with a conversation. Once leads are assigned to you, they'll appear here — ready to call, move through the pipeline, and close.
+          </div>
+          <div style={{
+            display: 'inline-flex', flexDirection: 'column', gap: 10, textAlign: 'left',
+            background: '#f8fafc', borderRadius: 12, padding: '16px 20px',
+            border: '1px solid #e5e7eb',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>Your workflow, once leads arrive:</div>
+            {[
+              '1. Call or text the lead directly from this screen',
+              '2. Log a note after every touch',
+              '3. Move them forward to the next stage',
+              '4. Set a follow-up date so nothing falls through',
+            ].map(step => (
+              <div key={step} style={{ fontSize: 13, color: '#6b7280', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <span style={{ color: '#b8943d', fontWeight: 700, flexShrink: 0 }}>→</span>
+                {step.slice(3)}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

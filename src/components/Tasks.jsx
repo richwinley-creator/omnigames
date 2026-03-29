@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useApi, apiPost, apiPut, apiDelete } from '../hooks/useApi';
+import { useToast } from './Toast';
+import Skeleton from './Skeleton';
 
 const PRIORITIES = [
   { key: 'urgent', label: 'Urgent', color: '#ef4444' },
@@ -111,9 +113,10 @@ export default function Tasks() {
   const [filter, setFilter] = useState('active');
   const [showForm, setShowForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
-  const { data: tasks, refetch } = useApi('/api/tasks');
+  const { data: tasks, loading, refetch } = useApi('/api/tasks');
   const { data: summary, refetch: refetchSummary } = useApi('/api/tasks/summary');
   const { data: users } = useApi('/api/auth/users');
+  const toast = useToast();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -134,6 +137,9 @@ export default function Tasks() {
   const handleStatusChange = async (task, newStatus) => {
     await apiPut(`/api/tasks/${task.id}`, { status: newStatus });
     refresh();
+    if (newStatus === 'completed') toast(`"${task.title}" marked complete`, 'success');
+    else if (newStatus === 'in_progress') toast(`"${task.title}" started`, 'info');
+    else if (newStatus === 'pending') toast(`"${task.title}" reopened`, 'info');
   };
 
   return (
@@ -171,9 +177,33 @@ export default function Tasks() {
       </div>
 
       {/* Cards */}
-      {filtered.length === 0 ? (
-        <div style={{ background: '#fff', borderRadius: 12, padding: 48, textAlign: 'center', color: '#9ca3af', boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
-          No tasks here. You're all caught up!
+      {loading ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+          <Skeleton variant="card" />
+          <Skeleton variant="card" />
+          <Skeleton variant="card" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <div style={{ background: '#fff', borderRadius: 16, padding: '52px 24px', textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+          <div style={{ fontSize: 44, marginBottom: 14 }}>
+            {filter === 'overdue' ? '🎉' : filter === 'completed' ? '🏆' : '✅'}
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: '#111827', marginBottom: 6 }}>
+            {filter === 'overdue' ? 'Nothing overdue!' :
+             filter === 'completed' ? 'No completed tasks yet' :
+             filter === 'active' ? 'All clear — no active tasks' :
+             'No tasks in this view'}
+          </div>
+          <div style={{ fontSize: 13, color: '#9ca3af', maxWidth: 300, margin: '0 auto 20px' }}>
+            {filter === 'active' ? 'Create a task to keep track of what needs to get done.' :
+             filter === 'overdue' ? 'Great work keeping up with your deadlines!' :
+             'Tasks you complete will show up here.'}
+          </div>
+          {filter === 'active' && (
+            <button style={st.addBtn} onClick={() => { setEditTask(null); setShowForm(true); }}>
+              + Create Your First Task
+            </button>
+          )}
         </div>
       ) : (
         groups.map(group => (

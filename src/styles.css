@@ -518,7 +518,7 @@ a:hover { color: var(--accent-light); }
 .d-btn-ghost:hover { background: #e2e8f0; }
 
 /* ============================================
-   RESPONSIVE
+   RESPONSIVE — Public site
    ============================================ */
 @media (max-width: 768px) {
   .site-nav-links { display: none; }
@@ -538,4 +538,83 @@ a:hover { color: var(--accent-light); }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
   .form-row { grid-template-columns: 1fr; }
+}
+
+/* ============================================
+   RESPONSIVE — Dashboard
+   ============================================ */
+
+/* ── KPI grid: stack on mobile ── */
+@media (max-width: 640px) {
+  .d-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 400px) {
+  .d-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Two-column layout: stack on mobile ── */
+@media (max-width: 768px) {
+  .d-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Tables: horizontal scroll ── */
+.d-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .d-table {
+    min-width: 480px;
+  }
+}
+
+/* ── Lead cards: full-width on mobile ── */
+@media (max-width: 640px) {
+  .lead-card {
+    border-radius: 8px !important;
+  }
+}
+
+/* ── Nav header: wrap properly on small screens ── */
+@media (max-width: 900px) {
+  /* Dashboard header already uses flex + gap — ensure it wraps */
+  .dash-header-nav {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Tap target minimum 44px for interactive elements ── */
+@media (max-width: 768px) {
+  /* Buttons inside the dashboard content area */
+  .d-btn,
+  .d-btn-ghost {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ── Dashboard content padding: tighter on mobile ── */
+@media (max-width: 640px) {
+  /* The main content area uses inline style, so we use a helper class */
+  .dash-content {
+    padding: 16px 14px 32px !important;
+  }
+}
+
+/* ── Modal cards: full-screen on very small viewports ── */
+@media (max-width: 520px) {
+  /* Applied via JS inline styles; this targets the modal overlay */
+  .d-modal-card {
+    width: calc(100vw - 32px) !important;
+    max-height: 90vh !important;
+  }
 }

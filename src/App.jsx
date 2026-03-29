@@ -27,6 +27,7 @@ import SearchBar from './components/SearchBar';
 import Notifications from './components/Notifications';
 import Counties from './components/Counties';
 import Welcome from './components/Welcome';
+import { ToastProvider } from './components/Toast';
 import './styles.css';
 
 /* ─── Public Layout (with site nav + footer) ─── */
@@ -77,6 +78,23 @@ const TEAM_TABS = [
   { key: 'service', label: 'Service', path: 'service', primary: false },
   { key: 'analytics', label: 'Analytics', path: 'analytics', primary: false },
 ];
+
+/* ─── Avatar initials helper ─── */
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Deterministic color from name string
+const AVATAR_COLORS = ['#b8943d', '#059669', '#3b82f6', '#8b5cf6', '#ec4899', '#0284c7', '#d97706', '#14b8a6'];
+function avatarColor(name) {
+  if (!name) return AVATAR_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
 
 const dashStyles = {
   header: {
@@ -238,7 +256,18 @@ function DashboardShell() {
             </svg>
             Help
           </button>
-          <span style={dashStyles.userName}>{user.name}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: '50%',
+              background: avatarColor(user.name),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
+              userSelect: 'none',
+            }}>
+              {getInitials(user.name)}
+            </div>
+            <span style={dashStyles.userName}>{user.name}</span>
+          </div>
           <button style={dashStyles.logoutBtn} onClick={handleLogout}>Sign Out</button>
         </div>
       </div>
@@ -270,12 +299,14 @@ function DashboardShell() {
 /* ─── Root App ─── */
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/dashboard/*" element={<DashboardShell />} />
-        <Route path="/portal/*" element={<Navigate to="/dashboard" />} />
-        <Route path="/*" element={<PublicLayout />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/dashboard/*" element={<DashboardShell />} />
+          <Route path="/portal/*" element={<Navigate to="/dashboard" />} />
+          <Route path="/*" element={<PublicLayout />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
