@@ -67,7 +67,7 @@ function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost }) {
         </div>
       )}
       <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-        {lead.num_games && <span style={{ fontSize: 11, color: '#6b7280' }}>🎮 {lead.num_games} games</span>}
+        {lead.num_games && <span style={{ fontSize: 11, color: '#6b7280' }}>🎰 {lead.num_games} machines</span>}
         {lead.revenue_split && (
           <span style={{
             fontSize: 11, fontWeight: 700,
