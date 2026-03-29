@@ -116,13 +116,23 @@ router.put('/:id', async (req, res) => {
   const oldLead = await db.prepare('SELECT * FROM leads WHERE id = ?').get(req.params.id);
   if (!oldLead) return res.status(404).json({ error: 'Lead not found' });
 
+  const { revenue_split, num_games, num_kiosks, game_type, lead_type, county, address } = req.body;
+
   const updates = [];
   const params = [];
   const fields = { name, email, phone, business_name, business_type, city, state, interest,
-    brand_preference, machines_wanted, notes, stage, assigned_to, follow_up_date };
+    brand_preference, machines_wanted, notes, stage, assigned_to, follow_up_date,
+    revenue_split, num_games, num_kiosks, game_type, lead_type, county, address };
   for (const [key, val] of Object.entries(fields)) {
     if (val !== undefined) { updates.push(`${key} = ?`); params.push(val); }
   }
+
+  // Auto-flag 50/50 splits for approval
+  const newSplit = revenue_split ?? oldLead.revenue_split;
+  if (newSplit === '50/50' && oldLead.approval_status !== 'approved') {
+    updates.push('approval_status = ?'); params.push('pending');
+  }
+
   if (updates.length === 0) return res.status(400).json({ error: 'Nothing to update' });
 
   updates.push("updated_at = NOW()");
@@ -167,6 +177,34 @@ router.put('/:id', async (req, res) => {
     }
   } catch(e) { /* audit_log table may not exist yet */ }
 
+  res.json({ ok: true });
+});
+
+// Approve lead (admin only)
+router.post('/:id/approve', async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const { notes } = req.body;
+  await db.prepare(`UPDATE leads SET approval_status = 'approved', approval_notes = $1, updated_at = NOW() WHERE id = $2`)
+    .run(notes || null, req.params.id);
+  try {
+    await db.prepare(`INSERT INTO activities (entity_type, entity_id, type, subject, body, created_by)
+      VALUES ('lead', $1, 'approval', 'Deal Approved', $2, $3)`)
+      .run(req.params.id, notes || 'Approved by ' + req.user.name, req.user.id);
+  } catch(e) {}
+  res.json({ ok: true });
+});
+
+// Reject lead (admin only)
+router.post('/:id/reject', async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const { notes } = req.body;
+  await db.prepare(`UPDATE leads SET approval_status = 'rejected', approval_notes = $1, updated_at = NOW() WHERE id = $2`)
+    .run(notes || null, req.params.id);
+  try {
+    await db.prepare(`INSERT INTO activities (entity_type, entity_id, type, subject, body, created_by)
+      VALUES ('lead', $1, 'approval', 'Deal Rejected', $2, $3)`)
+      .run(req.params.id, notes || 'Rejected by ' + req.user.name, req.user.id);
+  } catch(e) {}
   res.json({ ok: true });
 });
 

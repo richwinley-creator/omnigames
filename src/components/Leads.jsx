@@ -3,6 +3,7 @@ import { useApi, apiPost, apiPut, apiDelete } from '../hooks/useApi';
 import { CountyBadge } from './Counties';
 import { useToast } from './Toast';
 import Skeleton from './Skeleton';
+import LeadDrawer from './LeadDrawer';
 
 const STAGES = [
   { key: 'prospect', label: 'Prospect', color: '#6b7280' },
@@ -47,17 +48,23 @@ const st = {
 };
 
 /* ── Kanban card ── */
-function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost }) {
+function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost, onOpenDrawer }) {
   const stage = STAGE_MAP[lead.stage] || STAGE_MAP.prospect;
   const next = nextStage(lead.stage);
   const isFollowUpDue = lead.follow_up_date && lead.follow_up_date <= today;
+  const needsApproval = lead.approval_status === 'pending';
 
   return (
     <div style={{
       background: '#fff', borderRadius: 10, padding: '12px 14px', marginBottom: 8,
       boxShadow: '0 1px 3px rgba(0,0,0,0.08)', cursor: 'default',
-      borderTop: `3px solid ${stage.color}`,
+      borderTop: `3px solid ${needsApproval ? '#f59e0b' : stage.color}`,
     }}>
+      {needsApproval && (
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#92400e', background: '#fef3c7', borderRadius: 5, padding: '2px 8px', marginBottom: 6, display: 'inline-block' }}>
+          ⚠️ NEEDS APPROVAL
+        </div>
+      )}
       <div style={{ fontWeight: 600, fontSize: 13, color: '#111827', marginBottom: 2 }}>{lead.name}</div>
       {lead.business_name && <div style={{ fontSize: 12, color: '#6b7280' }}>{lead.business_name}</div>}
       {lead.city && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{lead.city}{lead.state && lead.state !== 'TX' ? `, ${lead.state}` : ''}</div>}
@@ -90,6 +97,10 @@ function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost }) {
             → {STAGE_MAP[next]?.label}
           </button>
         )}
+        <button onClick={() => onOpenDrawer(lead)} style={{
+          padding: '6px 10px', borderRadius: 6, border: '1px solid #e5e7eb', cursor: 'pointer',
+          fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
+        }}>View</button>
         <button onClick={() => onEdit(lead)} style={{
           padding: '6px 10px', borderRadius: 6, border: '1px solid #e5e7eb', cursor: 'pointer',
           fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
@@ -112,6 +123,7 @@ export default function Leads({ user }) {
   const [tableFilter, setTableFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editLead, setEditLead] = useState(null);
+  const [drawerLead, setDrawerLead] = useState(null);
   const { data: leads, loading, refetch } = useApi('/api/leads');
   const { data: users } = useApi(isAdmin ? '/api/auth/users' : null);
   const { data: summary, refetch: refetchSummary } = useApi('/api/leads/summary');
@@ -203,6 +215,7 @@ export default function Leads({ user }) {
                         onStageChange={handleStageChange}
                         onEdit={(l) => { setEditLead(l); setShowForm(true); }}
                         onLost={(l) => handleStageChange(l, 'lost')}
+                        onOpenDrawer={setDrawerLead}
                       />
                     ))}
                     {col.length === 0 && (
@@ -274,6 +287,7 @@ export default function Leads({ user }) {
                       <td style={st.td}>
                         {prev && <button style={st.actionBtn('#6b7280')} onClick={() => handleStageChange(lead, prev)}>← Back</button>}
                         {next && <button style={st.actionBtn('#b8943d')} onClick={() => handleStageChange(lead, next)}>→ Next</button>}
+                        <button style={st.actionBtn('#b8943d')} onClick={() => setDrawerLead(lead)}>View</button>
                         <button style={st.actionBtn('#f59e0b')} onClick={() => { setEditLead(lead); setShowForm(true); }}>Edit</button>
                         {lead.stage !== 'lost' && lead.stage !== 'live' && lead.stage !== 'archived' && (
                           <button style={st.actionBtn('#ef4444')} onClick={() => handleStageChange(lead, 'lost')}>Lost</button>
@@ -295,6 +309,14 @@ export default function Leads({ user }) {
           counties={counties || []}
           onClose={() => { setShowForm(false); setEditLead(null); }}
           onSave={refresh}
+        />
+      )}
+      {drawerLead && (
+        <LeadDrawer
+          lead={drawerLead}
+          isAdmin={isAdmin}
+          onClose={() => setDrawerLead(null)}
+          onUpdate={refresh}
         />
       )}
     </div>

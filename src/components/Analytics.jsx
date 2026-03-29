@@ -1,12 +1,13 @@
 import { useApi } from '../hooks/useApi';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const styles = {
   grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 },
   card: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
   fullCard: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)', marginBottom: 20 },
   h3: { margin: '0 0 16px', fontSize: 16, fontWeight: 600 },
-  stat: { fontSize: 32, fontWeight: 700, color: '#4f46e5' },
+  stat: { fontSize: 32, fontWeight: 700, color: '#b8943d' },
   statLabel: { fontSize: 12, color: '#6b7280' },
   bar: (pct, color) => ({ height: 24, width: `${Math.max(pct, 2)}%`, background: color, borderRadius: 4, transition: 'width 0.3s', minWidth: 2 }),
   barRow: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 },
@@ -27,12 +28,14 @@ const fmt = (n) => '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigit
 
 export default function Analytics() {
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const navigate = useNavigate();
   const { data: overview } = useApi('/api/analytics/overview');
   const { data: funnel } = useApi('/api/analytics/lead-funnel');
   const { data: revTrend } = useApi('/api/analytics/revenue-trend');
   const { data: jvl } = useApi('/api/analytics/jvl-analysis');
   const { data: depTrend } = useApi('/api/analytics/deposit-trend');
   const { data: revByLoc } = useApi(`/api/analytics/revenue-by-location?start=${dateRange.start}&end=${dateRange.end}`);
+  const { data: forecast } = useApi('/api/analytics/forecast');
 
   const maxFunnel = funnel ? Math.max(...Object.values(funnel.stages || {}), 1) : 1;
 
@@ -47,11 +50,11 @@ export default function Analytics() {
       {/* Top Stats */}
       {overview && (
         <div style={styles.topStats}>
-          <div style={styles.topStat('#4f46e5')}>
+          <div style={styles.topStat('#b8943d')}>
             <div style={styles.topStatLabel}>Total Leads</div>
             <div style={styles.topStatValue}>{overview.totalLeads}</div>
           </div>
-          <div style={styles.topStat('#7c3aed')}>
+          <div style={styles.topStat('#a07830')}>
             <div style={styles.topStatLabel}>Active Pipeline</div>
             <div style={styles.topStatValue}>{overview.activeLeads}</div>
           </div>
@@ -107,7 +110,7 @@ export default function Analytics() {
               <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
                 <div><div style={styles.stat}>{jvl.winRate}%</div><div style={styles.statLabel}>Win Rate</div></div>
                 <div><div style={{ ...styles.stat, color: '#059669' }}>{fmt(jvl.avgDealSize)}</div><div style={styles.statLabel}>Avg Deal</div></div>
-                <div><div style={{ ...styles.stat, color: '#7c3aed' }}>{jvl.totalDeals}</div><div style={styles.statLabel}>Total Deals</div></div>
+                <div><div style={{ ...styles.stat, color: '#b8943d' }}>{jvl.totalDeals}</div><div style={styles.statLabel}>Total Deals</div></div>
               </div>
               <table style={styles.table}>
                 <thead><tr><th style={styles.th}>Stage</th><th style={{ ...styles.th, textAlign: 'right' }}>Deals</th><th style={{ ...styles.th, textAlign: 'right' }}>Commission</th></tr></thead>
@@ -134,7 +137,7 @@ export default function Analytics() {
                 return (
                   <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <span style={{ fontSize: 10, fontWeight: 600 }}>{fmt(m.total_net)}</span>
-                    <div style={{ width: '80%', height: Math.max(h, 2), background: 'linear-gradient(180deg, #4f46e5, #7c3aed)', borderRadius: '4px 4px 0 0' }} />
+                    <div style={{ width: '80%', height: Math.max(h, 2), background: 'linear-gradient(180deg, #b8943d, #d4b85c)', borderRadius: '4px 4px 0 0' }} />
                     <span style={{ fontSize: 10, color: '#6b7280' }}>{m.month}</span>
                   </div>
                 );
@@ -191,6 +194,75 @@ export default function Analytics() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Pipeline Forecast */}
+      <div style={styles.fullCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <h3 style={{ ...styles.h3, margin: 0 }}>Pipeline Forecast</h3>
+          {forecast && forecast.pendingApprovals > 0 && (
+            <button
+              onClick={() => navigate('/leads')}
+              style={{ background: '#fef3c7', border: '1px solid #f59e0b', color: '#92400e', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+            >
+              ⚠️ {forecast.pendingApprovals} pending approval{forecast.pendingApprovals !== 1 ? 's' : ''}
+            </button>
+          )}
+        </div>
+        {forecast ? (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
+              <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 18px' }}>
+                <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Weighted Monthly GSE</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: '#059669' }}>{fmt(forecast.totalWeightedMonthly)}</div>
+                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>probability-adjusted</div>
+              </div>
+              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 18px' }}>
+                <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Raw Pipeline GSE</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: '#b8943d' }}>{fmt(forecast.totalRawMonthly)}</div>
+                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>if all leads convert</div>
+              </div>
+              <div style={{ background: '#f8f9fa', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 18px' }}>
+                <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Total Machines</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: '#374151' }}>{(forecast.stages || []).reduce((s, r) => s + r.machines, 0)}</div>
+                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>in active pipeline</div>
+              </div>
+            </div>
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Stage</th>
+                  <th style={{ ...styles.th, textAlign: 'center' }}>Close %</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Leads</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Machines</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Raw Monthly GSE</th>
+                  <th style={{ ...styles.th, textAlign: 'right' }}>Weighted GSE</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(forecast.stages || []).map(s => (
+                  <tr key={s.stage}>
+                    <td style={styles.td}>{s.stage.replace(/_/g, ' ')}</td>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>
+                      <span style={{ background: s.prob >= 0.8 ? '#d1fae5' : s.prob >= 0.5 ? '#fef3c7' : '#f3f4f6', color: s.prob >= 0.8 ? '#065f46' : s.prob >= 0.5 ? '#92400e' : '#374151', borderRadius: 12, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>
+                        {(s.prob * 100).toFixed(0)}%
+                      </span>
+                    </td>
+                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: 600 }}>{s.count}</td>
+                    <td style={{ ...styles.td, textAlign: 'right' }}>{s.machines}</td>
+                    <td style={{ ...styles.td, textAlign: 'right', color: '#b8943d' }}>{fmt(s.monthlyGseRaw)}</td>
+                    <td style={{ ...styles.td, textAlign: 'right', color: '#059669', fontWeight: 600 }}>{fmt(s.monthlyGseWeighted)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 12 }}>
+              Weighted GSE = estimated monthly revenue × probability of converting to live. Based on avg $1,500 net/machine/month at blended split.
+            </p>
+          </>
+        ) : (
+          <p style={{ color: '#9ca3af', fontSize: 13 }}>Loading forecast...</p>
+        )}
       </div>
 
       {/* Deposit Trend */}

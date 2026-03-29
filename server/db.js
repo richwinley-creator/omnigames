@@ -332,6 +332,8 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS num_kiosks INTEGER`);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS game_type TEXT`);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS lead_type TEXT DEFAULT 'house'`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS approval_status TEXT DEFAULT NULL`);
+  await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS approval_notes TEXT`);
 
   // Seed default admin user if no users exist
   const userCount = await pool.query('SELECT COUNT(*) as c FROM users');

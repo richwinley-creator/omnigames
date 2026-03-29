@@ -1,6 +1,6 @@
 import { useApi, apiPut } from '../hooks/useApi';
 import { REVENUE_SEED } from '../data/locations';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Skeleton from './Skeleton';
 
 const TARGET = 530000;
@@ -34,9 +34,11 @@ function getGreeting() {
 }
 
 export default function Dashboard({ isAdmin = true, user }) {
+  const navigate = useNavigate();
   const { data: locations, loading: loadingLocations } = useApi('/api/locations');
   const { data: deposits } = useApi(isAdmin ? '/api/deposits' : null);
   const { data: overview } = useApi('/api/analytics/overview');
+  const { data: forecast } = useApi(isAdmin ? '/api/analytics/forecast' : null);
   const { data: tasks, refetch: refetchTasks } = useApi('/api/tasks');
   const { data: allLeads } = useApi('/api/leads');
 
@@ -90,6 +92,20 @@ export default function Dashboard({ isAdmin = true, user }) {
         </h1>
         <p style={{ fontSize: 14, color: '#9ca3af', margin: 0 }}>Here's what needs your attention today.</p>
       </div>
+
+      {/* ── Pending Approvals Banner ── */}
+      {isAdmin && forecast && forecast.pendingApprovals > 0 && (
+        <div
+          onClick={() => navigate('/leads')}
+          style={{ background: '#fffbeb', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+        >
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#92400e' }}>
+            {forecast.pendingApprovals} lead{forecast.pendingApprovals !== 1 ? 's' : ''} need approval
+          </span>
+          <span style={{ fontSize: 12, color: '#b45309', marginLeft: 'auto' }}>View in Leads →</span>
+        </div>
+      )}
 
       {/* ── Today's Focus ── */}
       {hasFocus && (
