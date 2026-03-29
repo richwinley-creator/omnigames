@@ -521,6 +521,7 @@ a:hover { color: var(--accent-light); }
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
+  /* ── Public site ── */
   .site-nav-links { display: none; }
   .mobile-menu-btn { display: block; }
   .site-nav-links.open {
@@ -538,4 +539,44 @@ a:hover { color: var(--accent-light); }
   .footer-grid { grid-template-columns: 1fr 1fr; }
   .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
   .form-row { grid-template-columns: 1fr; }
+
+  /* ── Dashboard header ── */
+  .dash-nav-tab { display: none !important; }
+  .dash-more-label { display: none; }
+  .dash-username { display: none !important; }
+  .dash-search-wrap { display: none; }
+
+  /* Show primary tabs inside the hamburger on mobile */
+  .dash-mobile-menu-item { display: block !important; }
+  .dash-mobile-divider { display: block !important; }
+
+  /* ── Dashboard content ── */
+  .dash-content {
+    padding: 14px 14px 32px !important;
+  }
+
+  /* Stack 2-col grids */
+  .dash-two-col {
+    grid-template-columns: 1fr !important;
+  }
+  .dash-focus-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* KPI grid: 2 across on mobile instead of 4 */
+  .d-kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px;
+  }
+
+  /* Card padding tighter on mobile */
+  .d-card {
+    padding: 16px !important;
+  }
+
+  /* Tables scroll horizontally on small screens */
+  .d-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }

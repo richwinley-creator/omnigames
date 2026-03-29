@@ -96,7 +96,7 @@ export default function Dashboard({ isAdmin = true, user }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
             {icons.clock} Today's Focus
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: dueTasks.length > 0 && followUpLeads.length > 0 ? '1fr 1fr' : '1fr', gap: 24 }}>
+          <div className="dash-focus-grid" style={{ display: 'grid', gridTemplateColumns: dueTasks.length > 0 && followUpLeads.length > 0 ? '1fr 1fr' : '1fr', gap: 24 }}>
             {dueTasks.length > 0 && (
               <div>
                 <div className="d-section-label">Tasks Due</div>
@@ -231,12 +231,12 @@ export default function Dashboard({ isAdmin = true, user }) {
       </div>
 
       {/* ── Top Locations + Overview Stats ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16 }}>
+      <div className="dash-two-col" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16 }}>
         <div className="d-card">
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
             {icons.chart} Top Locations
           </div>
-          <table className="d-table">
+          <div className="d-table-wrap"><table className="d-table">
             <thead>
               <tr>
                 <th>#</th>
@@ -255,7 +255,7 @@ export default function Dashboard({ isAdmin = true, user }) {
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
 
         <div className="d-card">

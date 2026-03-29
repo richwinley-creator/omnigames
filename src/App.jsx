@@ -171,64 +171,82 @@ function DashboardShell() {
         </div>
         <nav style={dashStyles.nav}>
           {primaryTabs.map(t => (
-            <Link key={t.key} to={`${basePath}/${t.path}`} style={dashStyles.tab(currentPath === t.path)}>
+            <Link key={t.key} to={`${basePath}/${t.path}`} className="dash-nav-tab" style={dashStyles.tab(currentPath === t.path)}>
               {t.label}
             </Link>
           ))}
-          {secondaryTabs.length > 0 && (
-            <div ref={menuRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setMenuOpen(o => !o)}
-                style={{
-                  ...dashStyles.tab(secondaryActive || menuOpen),
-                  display: 'flex', alignItems: 'center', gap: 5, background:
-                    secondaryActive ? 'rgba(184,148,61,0.85)' : menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent',
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-                More
-              </button>
-              {menuOpen && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 8px)', left: 0, background: '#1e293b',
-                  borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', minWidth: 160,
-                  border: '1px solid rgba(255,255,255,0.08)', zIndex: 100, overflow: 'hidden',
-                }}>
-                  {secondaryTabs.map(t => (
-                    <Link
-                      key={t.key}
-                      to={`${basePath}/${t.path}`}
-                      onClick={() => setMenuOpen(false)}
-                      style={{
-                        display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 500,
-                        color: currentPath === t.path ? '#d4b85c' : '#cbd5e1',
-                        background: currentPath === t.path ? 'rgba(184,148,61,0.12)' : 'transparent',
-                        textDecoration: 'none', transition: 'background 0.1s',
-                        borderLeft: currentPath === t.path ? '3px solid #b8943d' : '3px solid transparent',
-                      }}
-                    >
-                      {t.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <div ref={menuRef} style={{ position: 'relative' }} className="dash-hamburger-wrap">
+            <button
+              onClick={() => setMenuOpen(o => !o)}
+              style={{
+                ...dashStyles.tab(secondaryActive || menuOpen),
+                display: 'flex', alignItems: 'center', gap: 5, background:
+                  secondaryActive ? 'rgba(184,148,61,0.85)' : menuOpen ? 'rgba(255,255,255,0.1)' : 'transparent',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+              <span className="dash-more-label">More</span>
+            </button>
+            {menuOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0, background: '#1e293b',
+                borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.3)', minWidth: 180,
+                border: '1px solid rgba(255,255,255,0.08)', zIndex: 100, overflow: 'hidden',
+              }}>
+                {/* Primary tabs shown here on mobile only */}
+                {primaryTabs.map(t => (
+                  <Link
+                    key={`m-${t.key}`}
+                    to={`${basePath}/${t.path}`}
+                    onClick={() => setMenuOpen(false)}
+                    className="dash-mobile-menu-item"
+                    style={{
+                      display: 'none', padding: '11px 16px', fontSize: 13, fontWeight: 600,
+                      color: currentPath === t.path ? '#d4b85c' : '#cbd5e1',
+                      background: currentPath === t.path ? 'rgba(184,148,61,0.12)' : 'transparent',
+                      textDecoration: 'none',
+                      borderLeft: currentPath === t.path ? '3px solid #b8943d' : '3px solid transparent',
+                    }}
+                  >
+                    {t.label}
+                  </Link>
+                ))}
+                {/* Divider between primary and secondary on mobile */}
+                {secondaryTabs.length > 0 && <div className="dash-mobile-divider" style={{ display: 'none', height: 1, background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />}
+                {secondaryTabs.map(t => (
+                  <Link
+                    key={t.key}
+                    to={`${basePath}/${t.path}`}
+                    onClick={() => setMenuOpen(false)}
+                    style={{
+                      display: 'block', padding: '10px 16px', fontSize: 13, fontWeight: 500,
+                      color: currentPath === t.path ? '#d4b85c' : '#cbd5e1',
+                      background: currentPath === t.path ? 'rgba(184,148,61,0.12)' : 'transparent',
+                      textDecoration: 'none', transition: 'background 0.1s',
+                      borderLeft: currentPath === t.path ? '3px solid #b8943d' : '3px solid transparent',
+                    }}
+                  >
+                    {t.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
         <div style={dashStyles.userInfo}>
-          <SearchBar onNavigate={(type, id) => {
+          <span className="dash-search-wrap"><SearchBar onNavigate={(type, id) => {
             const routes = { lead: 'leads', location: 'locations', ticket: 'service', deal: 'jvl', task: 'tasks' };
             window.location.hash = '';
             window.location.pathname = `${basePath}/${routes[type] || ''}`;
-          }} />
+          }} /></span>
           <Notifications />
-          <span style={dashStyles.userName}>{user.name}</span>
+          <span className="dash-username" style={dashStyles.userName}>{user.name}</span>
           <button style={dashStyles.logoutBtn} onClick={handleLogout}>Sign Out</button>
         </div>
       </div>
-      <main style={dashStyles.content}>
+      <main className="dash-content" style={dashStyles.content}>
         <Routes>
           <Route path="" element={<Dashboard key={refreshKey} isAdmin={isAdmin} user={user} />} />
           <Route path="leads" element={<Leads key={refreshKey} user={user} />} />
