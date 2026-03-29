@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useApi, apiPost, apiPut } from '../hooks/useApi';
+import { useApi, apiPost, apiPut, apiDelete } from '../hooks/useApi';
+import { useToast } from './Toast';
 
 const styles = {
   card: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   h2: { margin: 0, fontSize: 20, fontWeight: 700 },
-  addBtn: { padding: '8px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  addBtn: { padding: '8px 16px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
   th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontWeight: 600, color: '#374151', fontSize: 12 },
   td: { padding: '10px 12px', borderBottom: '1px solid #f3f4f6' },
@@ -21,18 +22,28 @@ const styles = {
 
 export default function Team() {
   const [showForm, setShowForm] = useState(false);
+  const [editUser, setEditUser] = useState(null);
   const { data: users, refetch } = useApi('/api/auth/users');
+  const toast = useToast();
 
   const toggleActive = async (user) => {
     await apiPut(`/api/auth/users/${user.id}`, { active: !user.active });
     refetch();
+    toast(`${user.name} ${user.active ? 'disabled' : 'enabled'}`, user.active ? 'info' : 'success');
+  };
+
+  const changeRole = async (user) => {
+    const newRole = user.role === 'admin' ? 'team' : 'admin';
+    await apiPut(`/api/auth/users/${user.id}`, { role: newRole });
+    refetch();
+    toast(`${user.name} role changed to ${newRole}`, 'info');
   };
 
   return (
     <div style={styles.card}>
       <div style={styles.header}>
         <h2 style={styles.h2}>Team Members</h2>
-        <button style={styles.addBtn} onClick={() => setShowForm(true)}>+ Add User</button>
+        <button style={styles.addBtn} onClick={() => { setEditUser(null); setShowForm(true); }}>+ Add User</button>
       </div>
       <table style={styles.table}>
         <thead>
@@ -50,56 +61,103 @@ export default function Team() {
             <tr key={u.id}>
               <td style={styles.td}><span style={{ fontWeight: 600 }}>{u.name}</span></td>
               <td style={styles.td}>{u.username}</td>
-              <td style={styles.td}><span style={styles.roleBadge(u.role)}>{u.role}</span></td>
+              <td style={styles.td}>
+                <span style={{ ...styles.roleBadge(u.role), cursor: 'pointer' }} onClick={() => changeRole(u)} title="Click to toggle role">
+                  {u.role}
+                </span>
+              </td>
               <td style={styles.td}><span style={styles.badge(u.active)}>{u.active ? 'Active' : 'Disabled'}</span></td>
               <td style={styles.td}>{u.created_at?.slice(0, 10)}</td>
               <td style={styles.td}>
+                <button style={styles.actionBtn('#b8943d')} onClick={() => { setEditUser(u); setShowForm(true); }}>Edit</button>
                 <button style={styles.actionBtn(u.active ? '#ef4444' : '#22c55e')} onClick={() => toggleActive(u)}>
                   {u.active ? 'Disable' : 'Enable'}
                 </button>
+                {u.username !== 'admin' && (
+                  <button style={styles.actionBtn('#ef4444')} onClick={async () => {
+                    if (confirm(`Delete ${u.name}? This cannot be undone.`)) {
+                      await apiDelete(`/api/auth/users/${u.id}`);
+                      refetch();
+                      toast(`${u.name} deleted`, 'error');
+                    }
+                  }}>Delete</button>
+                )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {showForm && <UserForm onClose={() => setShowForm(false)} onSave={() => { refetch(); setShowForm(false); }} />}
+      {showForm && (
+        <UserForm
+          user={editUser}
+          onClose={() => { setShowForm(false); setEditUser(null); }}
+          onSave={(isEdit, name) => {
+            refetch();
+            setShowForm(false);
+            setEditUser(null);
+            toast(isEdit ? `${name} updated` : `${name} added to team`, 'success');
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function UserForm({ onClose, onSave }) {
-  const [form, setForm] = useState({ username: '', password: '', name: '', role: 'team' });
+function UserForm({ user, onClose, onSave }) {
+  const isEdit = !!user;
+  const [form, setForm] = useState({
+    username: user?.username || '',
+    password: '',
+    name: user?.name || '',
+    role: user?.role || 'team',
+  });
   const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setMsg('');
     try {
-      await apiPost('/api/auth/users', form);
-      onSave();
-    } catch (e) { alert(e.message); } finally { setSaving(false); }
+      if (isEdit) {
+        const updates = { name: form.name, role: form.role };
+        if (form.password) updates.password = form.password;
+        await apiPut(`/api/auth/users/${user.id}`, updates);
+      } else {
+        if (!form.password) { setMsg('Password is required'); setSaving(false); return; }
+        await apiPost('/api/auth/users', form);
+      }
+      onSave(isEdit, form.name);
+    } catch (e) { setMsg(e.message); } finally { setSaving(false); }
   };
 
   return (
     <div style={styles.modal} onClick={onClose}>
       <form style={styles.modalCard} onClick={e => e.stopPropagation()} onSubmit={handleSave}>
-        <h3 style={{ margin: '0 0 20px', fontSize: 18 }}>Add Team Member</h3>
+        <h3 style={{ margin: '0 0 20px', fontSize: 18 }}>{isEdit ? `Edit: ${user.name}` : 'Add Team Member'}</h3>
+
+        {msg && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 12 }}>{msg}</div>}
+
         <label style={styles.label}>Full Name *</label>
         <input style={styles.input} value={form.name} onChange={e => set('name', e.target.value)} required />
+
         <label style={styles.label}>Username *</label>
-        <input style={styles.input} value={form.username} onChange={e => set('username', e.target.value)} required />
-        <label style={styles.label}>Password *</label>
-        <input style={styles.input} type="password" value={form.password} onChange={e => set('password', e.target.value)} required />
+        <input style={styles.input} value={form.username} onChange={e => set('username', e.target.value)} required disabled={isEdit} />
+
+        <label style={styles.label}>{isEdit ? 'New Password (leave blank to keep current)' : 'Password *'}</label>
+        <input style={styles.input} type="password" value={form.password} onChange={e => set('password', e.target.value)} required={!isEdit} placeholder={isEdit ? 'Leave blank to keep current' : ''} />
+
         <label style={styles.label}>Role</label>
         <select style={styles.select} value={form.role} onChange={e => set('role', e.target.value)}>
           <option value="team">Team Member</option>
           <option value="admin">Admin</option>
         </select>
+
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 8 }}>
           <button type="button" style={{ ...styles.addBtn, background: '#e5e7eb', color: '#374151' }} onClick={onClose}>Cancel</button>
-          <button style={{ ...styles.addBtn, opacity: saving ? 0.7 : 1 }} disabled={saving}>{saving ? 'Saving...' : 'Add User'}</button>
+          <button style={{ ...styles.addBtn, opacity: saving ? 0.7 : 1 }} disabled={saving}>{saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Add User'}</button>
         </div>
       </form>
     </div>

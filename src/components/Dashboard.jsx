@@ -1,6 +1,7 @@
 import { useApi, apiPut } from '../hooks/useApi';
 import { REVENUE_SEED } from '../data/locations';
 import { Link } from 'react-router-dom';
+import Skeleton from './Skeleton';
 
 const TARGET = 530000;
 const CURRENT_MONTHLY = 41368;
@@ -33,7 +34,7 @@ function getGreeting() {
 }
 
 export default function Dashboard({ isAdmin = true, user }) {
-  const { data: locations } = useApi('/api/locations');
+  const { data: locations, loading: loadingLocations } = useApi('/api/locations');
   const { data: deposits } = useApi(isAdmin ? '/api/deposits' : null);
   const { data: overview } = useApi('/api/analytics/overview');
   const { data: tasks, refetch: refetchTasks } = useApi('/api/tasks');
@@ -96,7 +97,7 @@ export default function Dashboard({ isAdmin = true, user }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
             {icons.clock} Today's Focus
           </div>
-          <div className="dash-focus-grid" style={{ display: 'grid', gridTemplateColumns: dueTasks.length > 0 && followUpLeads.length > 0 ? '1fr 1fr' : '1fr', gap: 24 }}>
+          <div className="d-two-col" style={{ display: 'grid', gridTemplateColumns: dueTasks.length > 0 && followUpLeads.length > 0 ? '1fr 1fr' : '1fr', gap: 24 }}>
             {dueTasks.length > 0 && (
               <div>
                 <div className="d-section-label">Tasks Due</div>
@@ -175,6 +176,7 @@ export default function Dashboard({ isAdmin = true, user }) {
       )}
 
       {/* ── KPI Cards ── */}
+      {loadingLocations && <div style={{ marginBottom: 20 }}><Skeleton variant="kpi" count={4} /></div>}
       <div className="d-kpi-grid">
         <div className="d-kpi">
           <div className="d-kpi-icon">{icons.revenue}</div>
@@ -231,31 +233,33 @@ export default function Dashboard({ isAdmin = true, user }) {
       </div>
 
       {/* ── Top Locations + Overview Stats ── */}
-      <div className="dash-two-col" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16 }}>
+      <div className="d-two-col" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 16 }}>
         <div className="d-card">
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
             {icons.chart} Top Locations
           </div>
-          <div className="d-table-wrap"><table className="d-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Location</th>
-                <th style={{ textAlign: 'right' }}>Net</th>
-                <th style={{ textAlign: 'right' }}>GSE Share</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topLocations.map((l, i) => (
-                <tr key={l.name}>
-                  <td style={{ width: 32, color: '#9ca3af', fontWeight: 600 }}>{i + 1}</td>
-                  <td style={{ fontWeight: 600, color: '#111827' }}>{l.name}</td>
-                  <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{fmt(l.net)}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>{fmt(l.gseRev)}</td>
+          <div className="d-table-wrap">
+            <table className="d-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Location</th>
+                  <th style={{ textAlign: 'right' }}>Net</th>
+                  <th style={{ textAlign: 'right' }}>GSE Share</th>
                 </tr>
-              ))}
-            </tbody>
-          </table></div>
+              </thead>
+              <tbody>
+                {topLocations.map((l, i) => (
+                  <tr key={l.name}>
+                    <td style={{ width: 32, color: '#9ca3af', fontWeight: 600 }}>{i + 1}</td>
+                    <td style={{ fontWeight: 600, color: '#111827' }}>{l.name}</td>
+                    <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{fmt(l.net)}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>{fmt(l.gseRev)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="d-card">

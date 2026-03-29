@@ -26,6 +26,8 @@ import BulkImport from './components/BulkImport';
 import SearchBar from './components/SearchBar';
 import Notifications from './components/Notifications';
 import Counties from './components/Counties';
+import Welcome from './components/Welcome';
+import { ToastProvider } from './components/Toast';
 import './styles.css';
 
 /* ─── Public Layout (with site nav + footer) ─── */
@@ -77,6 +79,23 @@ const TEAM_TABS = [
   { key: 'analytics', label: 'Analytics', path: 'analytics', primary: false },
 ];
 
+/* ─── Avatar initials helper ─── */
+function getInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Deterministic color from name string
+const AVATAR_COLORS = ['#b8943d', '#059669', '#3b82f6', '#8b5cf6', '#ec4899', '#0284c7', '#d97706', '#14b8a6'];
+function avatarColor(name) {
+  if (!name) return AVATAR_COLORS[0];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+}
+
 const dashStyles = {
   header: {
     background: '#0f172a', color: '#fff', padding: '0 24px',
@@ -125,6 +144,9 @@ function DashboardShell() {
   });
   const [refreshKey, setRefreshKey] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    try { return !localStorage.getItem('gse_welcome_seen'); } catch { return true; }
+  });
   const menuRef = useRef(null);
   const location = useLocation();
 
@@ -242,10 +264,33 @@ function DashboardShell() {
             window.location.pathname = `${basePath}/${routes[type] || ''}`;
           }} /></span>
           <Notifications />
-          <span className="dash-username" style={dashStyles.userName}>{user.name}</span>
+          <button
+            className="dash-help-btn"
+            onClick={() => setShowWelcome(true)}
+            style={{ ...dashStyles.logoutBtn, display: 'flex', alignItems: 'center', gap: 4 }}
+            title="Quick Start Guide"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            <span className="dash-help-label">Help</span>
+          </button>
+          <div className="dash-username" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: '50%',
+              background: avatarColor(user.name),
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0,
+              userSelect: 'none',
+            }}>
+              {getInitials(user.name)}
+            </div>
+            <span style={dashStyles.userName}>{user.name}</span>
+          </div>
           <button style={dashStyles.logoutBtn} onClick={handleLogout}>Sign Out</button>
         </div>
       </div>
+      {showWelcome && <Welcome user={user} onDismiss={() => { setShowWelcome(false); localStorage.setItem('gse_welcome_seen', '1'); }} />}
       <main className="dash-content" style={dashStyles.content}>
         <Routes>
           <Route path="" element={<Dashboard key={refreshKey} isAdmin={isAdmin} user={user} />} />
@@ -273,12 +318,14 @@ function DashboardShell() {
 /* ─── Root App ─── */
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/dashboard/*" element={<DashboardShell />} />
-        <Route path="/portal/*" element={<Navigate to="/dashboard" />} />
-        <Route path="/*" element={<PublicLayout />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/dashboard/*" element={<DashboardShell />} />
+          <Route path="/portal/*" element={<Navigate to="/dashboard" />} />
+          <Route path="/*" element={<PublicLayout />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }
