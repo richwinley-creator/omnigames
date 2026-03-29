@@ -26,6 +26,7 @@ import BulkImport from './components/BulkImport';
 import SearchBar from './components/SearchBar';
 import Notifications from './components/Notifications';
 import Counties from './components/Counties';
+import Welcome from './components/Welcome';
 import './styles.css';
 
 /* ─── Public Layout (with site nav + footer) ─── */
@@ -125,6 +126,9 @@ function DashboardShell() {
   });
   const [refreshKey, setRefreshKey] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    try { return !localStorage.getItem('gse_welcome_seen'); } catch { return true; }
+  });
   const menuRef = useRef(null);
   const location = useLocation();
 
@@ -224,10 +228,21 @@ function DashboardShell() {
             window.location.pathname = `${basePath}/${routes[type] || ''}`;
           }} />
           <Notifications />
+          <button
+            onClick={() => setShowWelcome(true)}
+            style={{ ...dashStyles.logoutBtn, display: 'flex', alignItems: 'center', gap: 4 }}
+            title="Quick Start Guide"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Help
+          </button>
           <span style={dashStyles.userName}>{user.name}</span>
           <button style={dashStyles.logoutBtn} onClick={handleLogout}>Sign Out</button>
         </div>
       </div>
+      {showWelcome && <Welcome user={user} onDismiss={() => { setShowWelcome(false); localStorage.setItem('gse_welcome_seen', '1'); }} />}
       <main style={dashStyles.content}>
         <Routes>
           <Route path="" element={<Dashboard key={refreshKey} isAdmin={isAdmin} user={user} />} />
