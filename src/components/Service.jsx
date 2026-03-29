@@ -15,7 +15,7 @@ const styles = {
   card: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 },
   h2: { margin: 0, fontSize: 20, fontWeight: 700 },
-  addBtn: { padding: '8px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  addBtn: { padding: '8px 16px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
   th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontWeight: 600, color: '#374151', fontSize: 12 },
   td: { padding: '10px 12px', borderBottom: '1px solid #f3f4f6' },
@@ -32,7 +32,7 @@ const styles = {
   select: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box', background: '#fff' },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 3 },
   pills: { display: 'flex', gap: 6, marginBottom: 16 },
-  pill: (active) => ({ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none', background: active ? '#4f46e5' : '#e5e7eb', color: active ? '#fff' : '#374151' }),
+  pill: (active) => ({ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500, cursor: 'pointer', border: 'none', background: active ? '#b8943d' : '#e5e7eb', color: active ? '#fff' : '#374151' }),
   summaryRow: { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 },
   summaryCard: (color) => ({ background: color + '10', borderRadius: 8, padding: '12px 16px', textAlign: 'center', borderLeft: `3px solid ${color}` }),
 };

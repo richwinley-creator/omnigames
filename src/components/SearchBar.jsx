@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 
-const ENTITY_COLORS = { lead: '#3b82f6', location: '#059669', ticket: '#ef4444', deal: '#7c3aed', task: '#f59e0b' };
+const ENTITY_COLORS = { lead: '#3b82f6', location: '#059669', ticket: '#ef4444', deal: '#b8943d', task: '#f59e0b' };
 const ENTITY_LABELS = { lead: 'Lead', location: 'Location', ticket: 'Ticket', deal: 'JVL Deal', task: 'Task' };
 
 const styles = {
   wrapper: { position: 'relative' },
   input: {
-    padding: '6px 12px 6px 32px', background: '#2a2a4a', border: '1px solid #3a3a5a',
-    borderRadius: 6, color: '#d1d5db', fontSize: 12, width: 220, outline: 'none',
+    padding: '6px 12px 6px 32px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)',
+    borderRadius: 6, color: '#f1f5f9', fontSize: 12, width: 220, outline: 'none',
   },
-  icon: { position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: '#6b7280' },
+  icon: { position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'rgba(255,255,255,0.6)' },
   dropdown: {
     position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4,
     background: '#fff', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.15)',

@@ -11,7 +11,7 @@ const styles = {
   th: { textAlign: 'left', padding: '10px 12px', borderBottom: '2px solid #e5e7eb', fontWeight: 600, color: '#374151', fontSize: 12 },
   td: { padding: '10px 12px', borderBottom: '1px solid #f3f4f6' },
   badge: (active) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: active ? '#dcfce7' : '#fee2e2', color: active ? '#16a34a' : '#dc2626' }),
-  roleBadge: (role) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: role === 'admin' ? '#ede9fe' : '#e0f2fe', color: role === 'admin' ? '#7c3aed' : '#0284c7' }),
+  roleBadge: (role) => ({ display: 'inline-block', padding: '2px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600, background: role === 'admin' ? '#fef3c7' : '#e0f2fe', color: role === 'admin' ? '#b8943d' : '#0284c7' }),
   modal: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
   modalCard: { background: '#fff', borderRadius: 12, padding: 28, width: 400 },
   input: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' },

@@ -147,12 +147,12 @@ export default function LeadDrawer({ lead, isAdmin, onClose, onUpdate }) {
           {/* Contact */}
           <div style={{ display: 'flex', gap: 12, marginTop: 12, fontSize: 12 }}>
             {lead.phone && (
-              <a href={`tel:${lead.phone}`} style={{ color: '#4f46e5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <a href={`tel:${lead.phone}`} style={{ color: '#b8943d', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                 📞 {lead.phone}
               </a>
             )}
             {lead.email && (
-              <a href={`mailto:${lead.email}`} style={{ color: '#4f46e5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <a href={`mailto:${lead.email}`} style={{ color: '#b8943d', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                 ✉️ {lead.email}
               </a>
             )}

@@ -51,8 +51,8 @@ export default function RampPlan() {
             <div key={r.month} style={styles.barRow}>
               <span style={styles.barLabel}>{r.month}</span>
               <div style={{ flex: 1, display: 'flex', background: '#f3f4f6', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
-                <div style={styles.bar(routePct, '#4f46e5')}>{routePct > 8 ? fmt(r.routeGse) : ''}</div>
-                <div style={styles.bar(jvlPct, '#7c3aed')}>{jvlPct > 8 ? fmt(r.jvlRev) : ''}</div>
+                <div style={styles.bar(routePct, '#b8943d')}>{routePct > 8 ? fmt(r.routeGse) : ''}</div>
+                <div style={styles.bar(jvlPct, '#b8943d')}>{jvlPct > 8 ? fmt(r.jvlRev) : ''}</div>
                 {/* Target marker */}
                 <div style={{
                   position: 'absolute',
@@ -70,8 +70,8 @@ export default function RampPlan() {
           );
         })}
         <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12 }}>
-          <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#4f46e5', borderRadius: 2, marginRight: 4, verticalAlign: 'middle' }}></span> Route GSE</span>
-          <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#7c3aed', borderRadius: 2, marginRight: 4, verticalAlign: 'middle' }}></span> JVL Sales</span>
+          <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#b8943d', borderRadius: 2, marginRight: 4, verticalAlign: 'middle' }}></span> Route GSE</span>
+          <span><span style={{ display: 'inline-block', width: 12, height: 12, background: '#b8943d', borderRadius: 2, marginRight: 4, verticalAlign: 'middle' }}></span> JVL Sales</span>
           <span><span style={{ display: 'inline-block', width: 12, height: 2, background: '#ef4444', marginRight: 4, verticalAlign: 'middle' }}></span> $530K Target</span>
         </div>
       </div>

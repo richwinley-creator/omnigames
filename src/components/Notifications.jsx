@@ -24,10 +24,10 @@ const styles = {
     padding: '12px 16px', borderBottom: '1px solid #e5e7eb',
   },
   title: { fontSize: 14, fontWeight: 700 },
-  markAll: { fontSize: 12, color: '#4f46e5', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 },
+  markAll: { fontSize: 12, color: '#b8943d', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 },
   item: (read) => ({
     padding: '10px 16px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
-    background: read ? '#fff' : '#f0f4ff',
+    background: read ? '#fff' : '#fffbeb',
   }),
   itemTitle: { fontSize: 13, fontWeight: 600, marginBottom: 2 },
   itemBody: { fontSize: 12, color: '#6b7280' },

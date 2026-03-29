@@ -6,7 +6,7 @@ const styles = {
   title: { fontSize: 18, fontWeight: 600, margin: '0 0 4px', color: '#1a1a2e' },
   subtitle: { fontSize: 13, color: '#6b7280', margin: '0 0 20px' },
   dropZone: (dragging) => ({
-    border: `2px dashed ${dragging ? '#4f46e5' : '#d1d5db'}`,
+    border: `2px dashed ${dragging ? '#b8943d' : '#d1d5db'}`,
     borderRadius: 12,
     padding: 48,
     textAlign: 'center',
@@ -24,7 +24,7 @@ const styles = {
     cursor: 'pointer',
     fontSize: 14,
     fontWeight: 600,
-    background: variant === 'primary' ? '#4f46e5' : variant === 'danger' ? '#ef4444' : '#e5e7eb',
+    background: variant === 'primary' ? '#b8943d' : variant === 'danger' ? '#ef4444' : '#e5e7eb',
     color: variant === 'primary' || variant === 'danger' ? '#fff' : '#374151',
     marginRight: 8,
   }),
@@ -163,7 +163,7 @@ export default function MeterImport({ onSave }) {
         >
           {extracting ? (
             <div>
-              <p style={{ fontSize: 16, color: '#4f46e5', fontWeight: 600 }}>Extracting data...</p>
+              <p style={{ fontSize: 16, color: '#b8943d', fontWeight: 600 }}>Extracting data...</p>
               <p style={styles.dropHint}>AI is reading the meter image</p>
             </div>
           ) : (

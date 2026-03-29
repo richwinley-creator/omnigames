@@ -11,7 +11,7 @@ const styles = {
   field: { display: 'flex', flexDirection: 'column', gap: 4 },
   label: { fontSize: 11, color: '#6b7280', textTransform: 'uppercase', fontWeight: 500 },
   input: { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13 },
-  btn: { padding: '8px 20px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500 },
+  btn: { padding: '8px 20px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500 },
   total: { padding: 16, background: '#f0fdf4', borderRadius: 8, marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
 };
 

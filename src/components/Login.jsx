@@ -26,7 +26,7 @@ const styles = {
     background: '#f8fafc',
   },
   btn: {
-    width: '100%', padding: '12px', background: '#4f46e5', color: '#fff', border: 'none',
+    width: '100%', padding: '12px', background: '#b8943d', color: '#fff', border: 'none',
     borderRadius: 10, fontSize: 15, fontWeight: 600, cursor: 'pointer',
     transition: 'background 0.15s, transform 0.1s',
     marginTop: 4,

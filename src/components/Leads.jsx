@@ -78,7 +78,7 @@ function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost, onOp
         {lead.revenue_split && (
           <span style={{
             fontSize: 11, fontWeight: 700,
-            color: lead.revenue_split === '60/40' ? '#059669' : lead.revenue_split === '40/60' ? '#7c3aed' : '#f59e0b',
+            color: lead.revenue_split === '60/40' ? '#059669' : lead.revenue_split === '40/60' ? '#b8943d' : '#f59e0b',
           }}>{lead.revenue_split}</span>
         )}
         {lead.game_type && <span style={{ fontSize: 11, color: '#9ca3af' }}>{lead.game_type}</span>}

@@ -7,15 +7,15 @@ const styles = {
   h3: { margin: '0 0 12px', fontSize: 16, fontWeight: 600 },
   tabs: { display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #e5e7eb', paddingBottom: 0 },
   tab: (active) => ({
-    padding: '8px 20px', background: 'none', border: 'none', borderBottom: active ? '2px solid #4f46e5' : '2px solid transparent',
-    marginBottom: -2, cursor: 'pointer', fontSize: 13, fontWeight: active ? 600 : 400, color: active ? '#4f46e5' : '#6b7280',
+    padding: '8px 20px', background: 'none', border: 'none', borderBottom: active ? '2px solid #b8943d' : '2px solid transparent',
+    marginBottom: -2, cursor: 'pointer', fontSize: 13, fontWeight: active ? 600 : 400, color: active ? '#b8943d' : '#6b7280',
   }),
   dropzone: {
     border: '2px dashed #d1d5db', borderRadius: 8, padding: '40px 20px', textAlign: 'center',
     cursor: 'pointer', background: '#f9fafb', marginBottom: 16,
   },
   input: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' },
-  btn: { padding: '8px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+  btn: { padding: '8px 16px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   btnSecondary: { padding: '8px 16px', background: '#e5e7eb', color: '#374151', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   preview: { maxHeight: 300, overflow: 'auto', marginBottom: 16 },
   table: { width: '100%', borderCollapse: 'collapse', fontSize: 12 },

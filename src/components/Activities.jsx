@@ -16,7 +16,7 @@ const styles = {
   container: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   h3: { margin: 0, fontSize: 16, fontWeight: 600 },
-  addBtn: { padding: '6px 14px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
+  addBtn: { padding: '6px 14px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' },
   timeline: { position: 'relative', paddingLeft: 28 },
   timelineLine: { position: 'absolute', left: 10, top: 0, bottom: 0, width: 2, background: '#e5e7eb' },
   item: { position: 'relative', marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid #f3f4f6' },
@@ -61,7 +61,7 @@ export default function Activities({ entityType, entityId }) {
         {[{ key: 'all', label: 'All' }, ...TYPES].map(t => (
           <button key={t.key} onClick={() => setFilter(t.key)}
             style={{ padding: '3px 10px', borderRadius: 12, border: 'none', fontSize: 11, fontWeight: 500, cursor: 'pointer',
-              background: filter === t.key ? '#4f46e5' : '#e5e7eb', color: filter === t.key ? '#fff' : '#374151' }}>
+              background: filter === t.key ? '#b8943d' : '#e5e7eb', color: filter === t.key ? '#fff' : '#374151' }}>
             {t.label}
           </button>
         ))}

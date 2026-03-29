@@ -3,7 +3,7 @@ import { useApi, apiPost, apiPut } from '../hooks/useApi';
 
 const STAGES = ['new', 'qualified', 'site_visit', 'proposal', 'closed', 'lost'];
 const STAGE_LABELS = { new: 'New', qualified: 'Qualified', site_visit: 'Site Visit', proposal: 'Proposal', closed: 'Closed', lost: 'Lost' };
-const STAGE_COLORS = { new: '#6366f1', qualified: '#0891b2', site_visit: '#d97706', proposal: '#7c3aed', closed: '#059669', lost: '#ef4444' };
+const STAGE_COLORS = { new: '#3b82f6', qualified: '#0891b2', site_visit: '#d97706', proposal: '#f59e0b', closed: '#059669', lost: '#ef4444' };
 
 const styles = {
   section: { background: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
@@ -28,7 +28,7 @@ const styles = {
   },
   cardName: { fontWeight: 600, marginBottom: 4 },
   cardDetail: { fontSize: 11, color: '#6b7280' },
-  btn: { padding: '6px 16px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 500, marginBottom: 12 },
+  btn: { padding: '6px 16px', background: '#b8943d', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 500, marginBottom: 12 },
   form: { background: '#f9fafb', padding: 16, borderRadius: 8, marginBottom: 16 },
   input: { width: '100%', padding: '6px 10px', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 13, marginBottom: 8, boxSizing: 'border-box' },
   moveBtn: { padding: '2px 8px', border: '1px solid #d1d5db', borderRadius: 4, cursor: 'pointer', fontSize: 10, background: '#fff', marginRight: 4 },
