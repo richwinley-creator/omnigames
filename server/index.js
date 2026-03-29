@@ -79,7 +79,7 @@ app.use('/api/', globalLimiter);
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10, // 10 login attempts per 15 min
+  max: 20, // 20 login attempts per 15 min
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many login attempts, please try again later' },
