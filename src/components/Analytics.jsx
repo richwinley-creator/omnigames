@@ -49,7 +49,7 @@ export default function Analytics() {
     <div>
       {/* Top Stats */}
       {overview && (
-        <div style={styles.topStats}>
+        <div className="analytics-top-stats" style={styles.topStats}>
           <div style={styles.topStat('#b8943d')}>
             <div style={styles.topStatLabel}>Total Leads</div>
             <div style={styles.topStatValue}>{overview.totalLeads}</div>
@@ -79,7 +79,7 @@ export default function Analytics() {
         </div>
       )}
 
-      <div style={styles.grid}>
+      <div className="analytics-grid">
         {/* Lead Funnel */}
         <div style={styles.card}>
           <h3 style={styles.h3}>Lead Conversion Funnel</h3>

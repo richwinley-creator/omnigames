@@ -29,7 +29,7 @@ const st = {
   statNum: { fontSize: 24, fontWeight: 700 },
   statLabel: { fontSize: 10, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' },
   modal: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modalCard: { background: '#fff', borderRadius: 12, padding: 28, width: 480, maxHeight: '85vh', overflow: 'auto' },
+  modalCard: { background: '#fff', borderRadius: 12, padding: 28, width: 'min(480px, calc(100vw - 32px))', maxHeight: '85vh', overflow: 'auto' },
   input: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box' },
   select: { width: '100%', padding: '8px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, marginBottom: 12, boxSizing: 'border-box', background: '#fff' },
   label: { display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 3 },

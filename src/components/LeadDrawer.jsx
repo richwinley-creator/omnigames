@@ -114,13 +114,14 @@ export default function LeadDrawer({ lead, isAdmin, onClose, onUpdate }) {
 
       {/* Drawer */}
       <div style={{
-        position: 'fixed', top: 0, right: 0, bottom: 0, width: 480,
+        position: 'fixed', top: 0, right: 0, bottom: 0,
+        width: 'min(480px, 100vw)',
         background: '#fff', zIndex: 201, display: 'flex', flexDirection: 'column',
         boxShadow: '-8px 0 32px rgba(0,0,0,0.12)',
       }}>
 
         {/* Header */}
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
+        <div style={{ padding: '16px 16px 14px', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{lead.name}</div>

@@ -113,7 +113,7 @@ export default function Dashboard({ isAdmin = true, user }) {
           <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
             {icons.clock} Today's Focus
           </div>
-          <div className="d-two-col" style={{ display: 'grid', gridTemplateColumns: dueTasks.length > 0 && followUpLeads.length > 0 ? '1fr 1fr' : '1fr', gap: 24 }}>
+          <div className="d-two-col" style={{ display: 'grid', gap: 24 }}>
             {dueTasks.length > 0 && (
               <div>
                 <div className="d-section-label">Tasks Due</div>
