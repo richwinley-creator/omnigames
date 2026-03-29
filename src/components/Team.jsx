@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApi, apiPost, apiPut } from '../hooks/useApi';
+import { useApi, apiPost, apiPut, apiDelete } from '../hooks/useApi';
 
 const styles = {
   card: { background: '#fff', borderRadius: 10, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' },
@@ -69,6 +69,14 @@ export default function Team() {
                 <button style={styles.actionBtn(u.active ? '#ef4444' : '#22c55e')} onClick={() => toggleActive(u)}>
                   {u.active ? 'Disable' : 'Enable'}
                 </button>
+                {u.username !== 'admin' && (
+                  <button style={styles.actionBtn('#ef4444')} onClick={async () => {
+                    if (confirm(`Delete ${u.name}? This cannot be undone.`)) {
+                      await apiDelete(`/api/auth/users/${u.id}`);
+                      refetch();
+                    }
+                  }}>Delete</button>
+                )}
               </td>
             </tr>
           ))}

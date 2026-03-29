@@ -67,4 +67,12 @@ router.put('/users/:id', authMiddleware, async (req, res) => {
   res.json({ ok: true });
 });
 
+// Delete user (admin only)
+router.delete('/users/:id', authMiddleware, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  if (Number(req.params.id) === req.user.id) return res.status(400).json({ error: 'Cannot delete yourself' });
+  await db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  res.json({ ok: true });
+});
+
 export default router;
