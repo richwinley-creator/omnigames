@@ -105,6 +105,7 @@ function KanbanCard({ lead, today, counties, onStageChange, onEdit, onLost }) {
 
 export default function Leads({ user }) {
   const isAdmin = user?.role === 'admin';
+  if (!isAdmin) return <SimpleLeadsView user={user} />;
   const [view, setView] = useState('kanban');
   const [tableFilter, setTableFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
@@ -288,6 +289,254 @@ export default function Leads({ user }) {
           onClose={() => { setShowForm(false); setEditLead(null); }}
           onSave={refresh}
         />
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   Simple Team View — call list + quick actions
+   ═══════════════════════════════════════════════ */
+function SimpleLeadsView({ user }) {
+  const { data: leads, refetch } = useApi('/api/leads');
+  const [showNotes, setShowNotes] = useState(null);
+  const [noteText, setNoteText] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const today = new Date().toISOString().split('T')[0];
+
+  // Split into actionable groups
+  const myLeads = (leads || []).filter(l => l.stage !== 'lost' && l.stage !== 'archived' && l.stage !== 'live');
+  const followUps = myLeads.filter(l => l.follow_up_date && l.follow_up_date <= today);
+  const newProspects = myLeads.filter(l => l.stage === 'prospect');
+  const inProgress = myLeads.filter(l => l.stage !== 'prospect' && (!l.follow_up_date || l.follow_up_date > today));
+  const won = (leads || []).filter(l => l.stage === 'live');
+
+  const advanceLead = async (lead) => {
+    const next = nextStage(lead.stage);
+    if (!next) return;
+    await apiPut(`/api/leads/${lead.id}`, { stage: next });
+    refetch();
+  };
+
+  const markLost = async (lead) => {
+    await apiPut(`/api/leads/${lead.id}`, { stage: 'lost' });
+    refetch();
+  };
+
+  const setFollowUp = async (lead, days) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    await apiPut(`/api/leads/${lead.id}`, { follow_up_date: d.toISOString().split('T')[0] });
+    refetch();
+  };
+
+  const saveNote = async (lead) => {
+    if (!noteText.trim()) return;
+    setSaving(true);
+    const existingNotes = lead.notes || '';
+    const stamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const updated = `[${stamp}] ${noteText.trim()}${existingNotes ? '\n' + existingNotes : ''}`;
+    await apiPut(`/api/leads/${lead.id}`, { notes: updated });
+    setNoteText('');
+    setShowNotes(null);
+    setSaving(false);
+    refetch();
+  };
+
+  const LeadCard = ({ lead, urgent }) => {
+    const stage = STAGE_MAP[lead.stage] || STAGE_MAP.prospect;
+    const next = nextStage(lead.stage);
+    const isOverdue = lead.follow_up_date && lead.follow_up_date < today;
+    const isNotesOpen = showNotes === lead.id;
+
+    return (
+      <div style={{
+        background: '#fff', borderRadius: 12, padding: '16px 18px', marginBottom: 10,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        borderLeft: `4px solid ${urgent ? '#ef4444' : stage.color}`,
+      }}>
+        {/* Name + business */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{lead.name}</div>
+            {lead.business_name && <div style={{ fontSize: 13, color: '#6b7280' }}>{lead.business_name}</div>}
+            {lead.city && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{lead.city}{lead.state && lead.state !== 'TX' ? `, ${lead.state}` : ''}</div>}
+          </div>
+          <span style={{
+            padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 600,
+            background: stage.color + '18', color: stage.color,
+          }}>{stage.label}</span>
+        </div>
+
+        {/* Follow up warning */}
+        {lead.follow_up_date && (
+          <div style={{
+            fontSize: 12, marginBottom: 8, fontWeight: isOverdue ? 700 : 400,
+            color: isOverdue ? '#ef4444' : '#6b7280',
+          }}>
+            {isOverdue ? 'OVERDUE — ' : 'Follow up: '}{lead.follow_up_date}
+          </div>
+        )}
+
+        {/* Contact buttons */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          {lead.phone && (
+            <a href={`tel:${lead.phone}`} style={{
+              padding: '8px 16px', borderRadius: 8, background: '#059669', color: '#fff',
+              fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              📞 Call {lead.phone}
+            </a>
+          )}
+          {lead.phone && (
+            <a href={`sms:${lead.phone}`} style={{
+              padding: '8px 16px', borderRadius: 8, background: '#3b82f6', color: '#fff',
+              fontSize: 13, fontWeight: 600, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              💬 Text
+            </a>
+          )}
+          {lead.email && (
+            <a href={`mailto:${lead.email}`} style={{
+              padding: '8px 14px', borderRadius: 8, background: '#f3f4f6', color: '#374151',
+              fontSize: 13, fontWeight: 500, textDecoration: 'none',
+            }}>
+              ✉ Email
+            </a>
+          )}
+        </div>
+
+        {/* Quick actions */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {next && (
+            <button onClick={() => advanceLead(lead)} style={{
+              padding: '7px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
+              fontSize: 12, fontWeight: 600, background: '#b8943d', color: '#fff',
+            }}>
+              ✓ Move to {STAGE_MAP[next]?.label}
+            </button>
+          )}
+          <button onClick={() => setFollowUp(lead, 1)} style={{
+            padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
+            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
+          }}>Tomorrow</button>
+          <button onClick={() => setFollowUp(lead, 3)} style={{
+            padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
+            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
+          }}>In 3 Days</button>
+          <button onClick={() => setFollowUp(lead, 7)} style={{
+            padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
+            fontSize: 12, fontWeight: 500, background: '#fff', color: '#374151',
+          }}>Next Week</button>
+          <button onClick={() => { setShowNotes(isNotesOpen ? null : lead.id); setNoteText(''); }} style={{
+            padding: '7px 12px', borderRadius: 7, border: '1px solid #e5e7eb', cursor: 'pointer',
+            fontSize: 12, fontWeight: 500, background: isNotesOpen ? '#0f172a' : '#fff', color: isNotesOpen ? '#fff' : '#374151',
+          }}>📝 Note</button>
+          <button onClick={() => markLost(lead)} style={{
+            padding: '7px 12px', borderRadius: 7, border: 'none', cursor: 'pointer',
+            fontSize: 12, fontWeight: 500, background: '#fef2f2', color: '#ef4444',
+          }}>✕ Lost</button>
+        </div>
+
+        {/* Notes input */}
+        {isNotesOpen && (
+          <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
+            <input
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              placeholder="What happened? (called, voicemail, scheduled visit...)"
+              style={{
+                flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8,
+                fontSize: 13, outline: 'none',
+              }}
+              autoFocus
+              onKeyDown={e => e.key === 'Enter' && saveNote(lead)}
+            />
+            <button onClick={() => saveNote(lead)} disabled={saving} style={{
+              padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, background: '#b8943d', color: '#fff',
+              opacity: saving ? 0.7 : 1,
+            }}>{saving ? '...' : 'Save'}</button>
+          </div>
+        )}
+
+        {/* Existing notes preview */}
+        {lead.notes && !isNotesOpen && (
+          <div style={{
+            marginTop: 8, padding: '8px 12px', borderRadius: 8, background: '#f9fafb',
+            fontSize: 12, color: '#6b7280', whiteSpace: 'pre-line',
+            maxHeight: 60, overflow: 'hidden',
+          }}>{lead.notes}</div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 700 }}>My Leads</h2>
+        <p style={{ margin: 0, fontSize: 13, color: '#9ca3af' }}>
+          Call, text, or email each lead. Log what happened. Move them forward.
+        </p>
+      </div>
+
+      {/* Quick stats */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        {[
+          { n: followUps.length, label: 'Due Today', color: '#ef4444' },
+          { n: newProspects.length, label: 'New Prospects', color: '#b8943d' },
+          { n: inProgress.length, label: 'In Progress', color: '#3b82f6' },
+          { n: won.length, label: 'Won', color: '#059669' },
+        ].map(s => (
+          <div key={s.label} style={{
+            background: '#fff', borderRadius: 10, padding: '12px 18px', minWidth: 100,
+            borderLeft: `3px solid ${s.color}`, boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+          }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.n}</div>
+            <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 500 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Due Today / Overdue */}
+      {followUps.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#ef4444', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+            🔥 Needs Attention ({followUps.length})
+          </h3>
+          {followUps.map(l => <LeadCard key={l.id} lead={l} urgent />)}
+        </div>
+      )}
+
+      {/* New Prospects */}
+      {newProspects.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 10 }}>
+            New Prospects ({newProspects.length})
+          </h3>
+          {newProspects.map(l => <LeadCard key={l.id} lead={l} />)}
+        </div>
+      )}
+
+      {/* In Progress */}
+      {inProgress.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#111827', marginBottom: 10 }}>
+            In Progress ({inProgress.length})
+          </h3>
+          {inProgress.map(l => <LeadCard key={l.id} lead={l} />)}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {myLeads.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 4 }}>No leads assigned yet</div>
+          <div style={{ fontSize: 13 }}>Ask your admin to assign leads to you.</div>
+        </div>
       )}
     </div>
   );
