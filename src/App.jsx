@@ -26,6 +26,7 @@ import BulkImport from './components/BulkImport';
 import SearchBar from './components/SearchBar';
 import Notifications from './components/Notifications';
 import Counties from './components/Counties';
+import Inventory from './components/Inventory';
 import Welcome from './components/Welcome';
 import { ToastProvider } from './components/Toast';
 import './styles.css';
@@ -55,6 +56,7 @@ const ADMIN_TABS = [
   { key: 'leads', label: 'Leads', path: 'leads', primary: true },
   { key: 'tasks', label: 'Tasks', path: 'tasks', primary: true },
   { key: 'locations', label: 'Locations', path: 'locations', primary: true },
+  { key: 'inventory', label: 'Inventory', path: 'inventory', primary: true },
   { key: 'counties', label: 'Counties', path: 'counties', primary: false },
   { key: 'analytics', label: 'Analytics', path: 'analytics', primary: false },
   { key: 'jvl', label: 'JVL Pipeline', path: 'jvl', primary: false },
@@ -74,6 +76,7 @@ const TEAM_TABS = [
   { key: 'leads', label: 'My Leads', path: 'leads', primary: true },
   { key: 'tasks', label: 'My Tasks', path: 'tasks', primary: true },
   { key: 'locations', label: 'Locations', path: 'locations', primary: true },
+  { key: 'inventory', label: 'Inventory', path: 'inventory', primary: false },
   { key: 'fills', label: 'Fills', path: 'fills', primary: false },
   { key: 'service', label: 'Service', path: 'service', primary: false },
   { key: 'analytics', label: 'Analytics', path: 'analytics', primary: false },
@@ -309,6 +312,7 @@ function DashboardShell() {
           {isAdmin && <Route path="audit" element={<AuditLog key={refreshKey} />} />}
           {isAdmin && <Route path="counties" element={<Counties key={refreshKey} />} />}
           {isAdmin && <Route path="team" element={<Team key={refreshKey} />} />}
+          <Route path="inventory" element={<Inventory key={refreshKey} />} />
         </Routes>
       </main>
     </div>

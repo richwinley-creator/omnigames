@@ -384,6 +384,55 @@ async function initDatabase() {
     console.log('Database seeded with 13 locations and 3 deposits');
   }
 
+  // Inventory tables
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS inventory_orders (
+      id SERIAL PRIMARY KEY,
+      sales_order TEXT UNIQUE NOT NULL,
+      promissory_note TEXT,
+      vendor TEXT DEFAULT 'Banilla',
+      machines_qty INTEGER DEFAULT 0,
+      kiosks_qty INTEGER DEFAULT 0,
+      received_at DATE,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER REFERENCES inventory_orders(id) ON DELETE SET NULL,
+      type TEXT NOT NULL CHECK (type IN ('machine','kiosk')),
+      model TEXT DEFAULT 'Banilla Cabinet',
+      serial_number TEXT,
+      asset_tag TEXT,
+      status TEXT DEFAULT 'available' CHECK (status IN ('available','deployed','maintenance','retired')),
+      location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL,
+      deployed_at DATE,
+      notes TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+
+  // Seed inventory orders
+  {
+    const orders = [
+      { sales_order: 'SO88857', promissory_note: '#1', vendor: 'Banilla', machines_qty: 24, kiosks_qty: 6 },
+      { sales_order: 'SO89614', promissory_note: '#2', vendor: 'Banilla', machines_qty: 22, kiosks_qty: 6 },
+      { sales_order: 'SO91425', promissory_note: '#3', vendor: 'Banilla', machines_qty: 18, kiosks_qty: 6 },
+      { sales_order: 'SO93438', promissory_note: '#5', vendor: 'Banilla', machines_qty: 16, kiosks_qty: 3 },
+    ];
+    for (const o of orders) {
+      await pool.query(
+        `INSERT INTO inventory_orders (sales_order, promissory_note, vendor, machines_qty, kiosks_qty)
+         VALUES ($1,$2,$3,$4,$5) ON CONFLICT (sales_order) DO NOTHING`,
+        [o.sales_order, o.promissory_note, o.vendor, o.machines_qty, o.kiosks_qty]
+      );
+    }
+    console.log('Inventory orders seeded');
+  }
+
   // Seed counties — ON CONFLICT DO NOTHING prevents duplicates
   {
     const counties = [

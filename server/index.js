@@ -30,6 +30,7 @@ import notificationsRouter from './routes/notifications.js';
 import bulkRouter from './routes/bulk.js';
 import countiesRouter from './routes/counties.js';
 import contractRouter from './routes/contract.js';
+import inventoryRouter from './routes/inventory.js';
 
 // --- Env validation ---
 const requiredEnvVars = ['JWT_SECRET'];
@@ -127,6 +128,7 @@ app.use('/api/notifications', authMiddleware, notificationsRouter);
 app.use('/api/bulk', authMiddleware, bulkRouter);
 app.use('/api/counties', authMiddleware, countiesRouter);
 app.use('/api/contract', authMiddleware, contractRouter);
+app.use('/api/inventory', authMiddleware, inventoryRouter);
 
 // --- Health check ---
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
