@@ -308,10 +308,8 @@ export default function Inventory() {
                       <td style={st.td}>{o.promissory_note || '—'}</td>
                       <td style={st.td}>{o.vendor}</td>
                       <td style={st.td}>
-                        <span title="Machines">{o.machines_qty}M</span>
-                        {' + '}
-                        <span title="Kiosks">{o.kiosks_qty}K</span>
-                        <span style={{ marginLeft: 6, color: '#9ca3af' }}>= {ordTotal}</span>
+                        <span style={{ fontWeight: 600 }}>{ordTotal}</span>
+                        <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>({o.machines_qty} machines, {o.kiosks_qty} kiosks)</span>
                       </td>
                       <td style={st.td}>
                         <span style={{ color: tagged === ordTotal ? '#059669' : tagged > 0 ? '#f59e0b' : '#9ca3af' }}>
@@ -334,11 +332,10 @@ export default function Inventory() {
                 <tr style={{ background: '#f8f9fa' }}>
                   <td style={{ ...st.td, fontWeight: 700 }} colSpan={3}>TOTAL</td>
                   <td style={{ ...st.td, fontWeight: 700 }}>
-                    {(orders || []).reduce((s, o) => s + (o.machines_qty || 0), 0)}M
-                    {' + '}
-                    {(orders || []).reduce((s, o) => s + (o.kiosks_qty || 0), 0)}K
-                    {' = '}
                     {totalOrdered}
+                    <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>
+                      ({(orders || []).reduce((s, o) => s + (o.machines_qty || 0), 0)} machines, {(orders || []).reduce((s, o) => s + (o.kiosks_qty || 0), 0)} kiosks)
+                    </span>
                   </td>
                   <td style={st.td}>{tagged}/{totalOrdered}</td>
                   <td style={{ ...st.td, color: '#3b82f6', fontWeight: 700 }}>{summary?.deployed ?? 0}</td>
