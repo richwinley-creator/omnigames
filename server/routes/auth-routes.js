@@ -54,9 +54,10 @@ router.post('/users', authMiddleware, async (req, res) => {
 // Update user (admin only)
 router.put('/users/:id', authMiddleware, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-  const { name, role, active, password } = req.body;
+  const { name, role, active, password, username } = req.body;
   const updates = [];
   const params = [];
+  if (username) { updates.push('username = ?'); params.push(username); }
   if (name) { updates.push('name = ?'); params.push(name); }
   if (role) { updates.push('role = ?'); params.push(role); }
   if (active !== undefined) { updates.push('active = ?'); params.push(active ? 1 : 0); }
