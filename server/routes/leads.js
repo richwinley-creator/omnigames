@@ -118,13 +118,24 @@ router.put('/:id', async (req, res) => {
 
   const { revenue_split, num_games, num_kiosks, game_type, lead_type, county, address } = req.body;
 
+  // Coerce empty strings to null for integer/date columns
+  const intFields = new Set(['num_games', 'num_kiosks', 'assigned_to']);
+  const dateFields = new Set(['follow_up_date']);
+  const coerce = (key, val) => {
+    if (val === '' || val === null) {
+      if (intFields.has(key) || dateFields.has(key)) return null;
+    }
+    if (intFields.has(key) && val !== null && val !== undefined) return parseInt(val) || null;
+    return val;
+  };
+
   const updates = [];
   const params = [];
   const fields = { name, email, phone, business_name, business_type, city, state, interest,
     brand_preference, machines_wanted, notes, stage, assigned_to, follow_up_date,
     revenue_split, num_games, num_kiosks, game_type, lead_type, county, address };
   for (const [key, val] of Object.entries(fields)) {
-    if (val !== undefined) { updates.push(`${key} = ?`); params.push(val); }
+    if (val !== undefined) { updates.push(`${key} = ?`); params.push(coerce(key, val)); }
   }
 
   // Auto-flag 50/50 splits for approval
