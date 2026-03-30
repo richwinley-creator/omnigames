@@ -424,7 +424,7 @@ async function initDatabase() {
     );
   `);
 
-  // Seed inventory orders
+  // Seed inventory orders + items
   {
     const orders = [
       { sales_order: 'SO88857', promissory_note: '#1', vendor: 'Banilla', machines_qty: 24, kiosks_qty: 6 },
@@ -438,6 +438,32 @@ async function initDatabase() {
          VALUES ($1,$2,$3,$4,$5) ON CONFLICT (sales_order) DO NOTHING`,
         [o.sales_order, o.promissory_note, o.vendor, o.machines_qty, o.kiosks_qty]
       );
+    }
+
+    // Seed individual items if table is empty (101 total: 67 deployed, 34 available)
+    const itemCount = await pool.query('SELECT COUNT(*) as c FROM inventory_items');
+    if (parseInt(itemCount.rows[0].c) === 0) {
+      const allOrders = (await pool.query('SELECT id, sales_order FROM inventory_orders ORDER BY id')).rows;
+      const orderMap = Object.fromEntries(allOrders.map(o => [o.sales_order, o.id]));
+      const items = [
+        ...Array(24).fill({ so: 'SO88857', type: 'machine', model: 'Banilla Cabinet', status: 'deployed' }),
+        ...Array(6).fill({ so: 'SO88857', type: 'kiosk', model: 'PT Kiosk Redemption - Silver', status: 'deployed' }),
+        ...Array(22).fill({ so: 'SO89614', type: 'machine', model: 'Banilla Cabinet', status: 'deployed' }),
+        ...Array(6).fill({ so: 'SO89614', type: 'kiosk', model: 'PT Kiosk Redemption - Silver', status: 'deployed' }),
+        ...Array(8).fill({ so: 'SO91425', type: 'machine', model: 'Banilla Cabinet', status: 'deployed' }),
+        ...Array(10).fill({ so: 'SO91425', type: 'machine', model: 'Banilla Cabinet', status: 'available' }),
+        ...Array(1).fill({ so: 'SO91425', type: 'kiosk', model: 'PT Kiosk Redemption - Silver', status: 'deployed' }),
+        ...Array(5).fill({ so: 'SO91425', type: 'kiosk', model: 'PT Kiosk Redemption - Silver', status: 'available' }),
+        ...Array(16).fill({ so: 'SO93438', type: 'machine', model: 'Banilla Cabinet', status: 'available' }),
+        ...Array(3).fill({ so: 'SO93438', type: 'kiosk', model: 'PT Kiosk Redemption - Silver', status: 'available' }),
+      ];
+      for (const item of items) {
+        await pool.query(
+          `INSERT INTO inventory_items (order_id, type, model, status) VALUES ($1,$2,$3,$4)`,
+          [orderMap[item.so], item.type, item.model, item.status]
+        );
+      }
+      console.log('Inventory items seeded: 101 items (67 deployed, 34 available)');
     }
     console.log('Inventory orders seeded');
   }
