@@ -27,10 +27,21 @@ router.get('/', async (req, res) => {
   res.json(locations);
 });
 
-// PUT /api/locations/:id — update status
+// PUT /api/locations/:id — update fields
 router.put('/:id', async (req, res) => {
-  const { status } = req.body;
-  await db.prepare('UPDATE locations SET status = ? WHERE id = ?').run(status, req.params.id);
+  const { status, machines, kiosks, gse_pct, partner_pct, partner, name } = req.body;
+  const updates = [];
+  const params = [];
+  if (status !== undefined) { updates.push('status = ?'); params.push(status); }
+  if (machines !== undefined) { updates.push('machines = ?'); params.push(machines); }
+  if (kiosks !== undefined) { updates.push('kiosks = ?'); params.push(kiosks); }
+  if (gse_pct !== undefined) { updates.push('gse_pct = ?'); params.push(gse_pct); }
+  if (partner_pct !== undefined) { updates.push('partner_pct = ?'); params.push(partner_pct); }
+  if (partner !== undefined) { updates.push('partner = ?'); params.push(partner); }
+  if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+  if (!updates.length) return res.json({ ok: true });
+  params.push(req.params.id);
+  await db.prepare(`UPDATE locations SET ${updates.join(', ')} WHERE id = ?`).run(...params);
   res.json({ ok: true });
 });
 

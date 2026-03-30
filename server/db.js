@@ -325,6 +325,7 @@ async function initDatabase() {
   `);
 
   // Safe column migrations
+  await pool.query(`ALTER TABLE locations ADD COLUMN IF NOT EXISTS kiosks INTEGER DEFAULT 0`);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS county TEXT`);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS address TEXT`);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS revenue_split TEXT`);
