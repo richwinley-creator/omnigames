@@ -3,14 +3,16 @@ import { useApi } from '../hooks/useApi';
 
 const STATUS_COLORS = {
   available: '#059669',
-  deployed: '#3b82f6',
+  reserved: '#3b82f6',
+  deployed: '#b8943d',
   maintenance: '#f59e0b',
   retired: '#6b7280',
 };
 const STATUS_BG = {
   available: '#d1fae5',
-  deployed: '#dbeafe',
-  maintenance: '#fef3c7',
+  reserved: '#dbeafe',
+  deployed: '#fef3c7',
+  maintenance: '#fff3cd',
   retired: '#f3f4f6',
 };
 
@@ -220,6 +222,7 @@ export default function Inventory() {
   const { data: summary, refetch: refetchSummary } = useApi('/api/inventory/summary');
   const { data: orders, refetch: refetchOrders } = useApi('/api/inventory/orders');
   const { data: locations } = useApi('/api/locations');
+  const { data: demand, refetch: refetchDemand } = useApi(view === 'demand' ? '/api/inventory/demand' : null);
 
   const itemQuery = [
     filterStatus && `status=${filterStatus}`,
@@ -228,7 +231,30 @@ export default function Inventory() {
   ].filter(Boolean).join('&');
   const { data: items, refetch: refetchItems } = useApi(`/api/inventory/items${itemQuery ? '?' + itemQuery : ''}`);
 
-  const refresh = () => { refetchSummary(); refetchOrders(); refetchItems(); };
+  const refresh = () => { refetchSummary(); refetchOrders(); refetchItems(); refetchDemand(); };
+
+  async function reserveForLead(leadId, machines, kiosks) {
+    const token = localStorage.getItem('gse_token');
+    const errors = [];
+    if (machines > 0) {
+      const r = await fetch('/api/inventory/reserve', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ lead_id: leadId, type: 'machine', count: machines }) });
+      const d = await r.json();
+      if (d.error) errors.push(d.error);
+    }
+    if (kiosks > 0) {
+      const r = await fetch('/api/inventory/reserve', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ lead_id: leadId, type: 'kiosk', count: kiosks }) });
+      const d = await r.json();
+      if (d.error) errors.push(d.error);
+    }
+    if (errors.length) alert(errors.join('\n'));
+    refresh();
+  }
+
+  async function unreserveForLead(leadId) {
+    const token = localStorage.getItem('gse_token');
+    await fetch('/api/inventory/unreserve', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ lead_id: leadId }) });
+    refresh();
+  }
 
   async function deleteOrder(id) {
     if (!confirm('Delete this order? Items linked to it will become unassigned.')) return;
@@ -269,19 +295,23 @@ export default function Inventory() {
         <KpiCard label="Machines" value={summary?.totalMachinesOrdered} sub="80 across 4 orders" topColor="#3b82f6" />
         <KpiCard label="Kiosks" value={summary?.totalKiosksOrdered} sub="PT Kiosk Redemption" topColor="#8b5cf6" />
         <KpiCard label="Tagged / Serialized" value={`${tagged} / ${totalOrdered}`} sub={`${untagged} not yet tagged`} topColor="#f59e0b" />
-        <KpiCard label="Deployed" value={summary?.deployed ?? 0} color="#3b82f6" topColor="#3b82f6" />
         <KpiCard label="Available" value={summary?.available ?? 0} color="#059669" topColor="#059669" />
+        <KpiCard label="Reserved" value={summary?.reserved ?? 0} color="#3b82f6" sub="committed to leads" topColor="#3b82f6" />
+        <KpiCard label="Deployed" value={summary?.deployed ?? 0} color="#b8943d" topColor="#b8943d" />
         <KpiCard label="In Maintenance" value={summary?.maintenance ?? 0} color="#f59e0b" topColor="#f59e0b" />
       </div>
 
       {/* View toggle */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-        {['orders', 'items'].map(v => (
+        {[['orders','Sales Orders'],['demand','Pipeline Demand'],['items','Item Tracker']].map(([v,label]) => (
           <button key={v} onClick={() => setView(v)} style={{
             padding: '6px 16px', borderRadius: 20, border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer',
             background: view === v ? '#b8943d' : '#f1f5f9', color: view === v ? '#fff' : '#374151',
           }}>
-            {v === 'orders' ? 'Sales Orders' : 'Item Tracker'}
+            {label}
+            {v === 'demand' && demand?.shortfallMachines > 0 && (
+              <span style={{ marginLeft: 6, background: '#ef4444', color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>!</span>
+            )}
           </button>
         ))}
       </div>
@@ -345,6 +375,103 @@ export default function Inventory() {
                 </tr>
               </tfoot>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── Pipeline Demand view ── */}
+      {view === 'demand' && (
+        <div>
+          {/* Stock summary bar */}
+          {demand && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 20 }}>
+              {[
+                { label: 'Available Machines', value: demand.availableMachines, color: '#059669', bg: '#d1fae5' },
+                { label: 'Reserved Machines', value: demand.reservedMachines, color: '#3b82f6', bg: '#dbeafe' },
+                { label: 'Available Kiosks', value: demand.availableKiosks, color: '#059669', bg: '#d1fae5' },
+                { label: 'Reserved Kiosks', value: demand.reservedKiosks, color: '#3b82f6', bg: '#dbeafe' },
+                { label: 'Machine Shortfall', value: demand.shortfallMachines, color: demand.shortfallMachines > 0 ? '#ef4444' : '#059669', bg: demand.shortfallMachines > 0 ? '#fee2e2' : '#d1fae5' },
+                { label: 'Kiosk Shortfall', value: demand.shortfallKiosks, color: demand.shortfallKiosks > 0 ? '#ef4444' : '#059669', bg: demand.shortfallKiosks > 0 ? '#fee2e2' : '#d1fae5' },
+              ].map(s => (
+                <div key={s.label} style={{ background: s.bg, borderRadius: 10, padding: '12px 16px' }}>
+                  <div style={{ fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{s.label}</div>
+                  <div style={{ fontSize: 26, fontWeight: 700, color: s.color }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={st.card}>
+            <div className="d-table-wrap">
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    {['Lead', 'Stage', 'Needs', 'Reserved', 'Still Needed', ''].map(h => (
+                      <th key={h} style={st.th}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(demand?.leads || []).sort((a, b) => {
+                    const stageOrder = { install_scheduled: 0, agreement_signed: 1, licensing: 2, proposal_sent: 3, site_qualified: 4, site_visit_scheduled: 5, initial_contact: 6, prospect: 7 };
+                    return (stageOrder[a.stage] ?? 9) - (stageOrder[b.stage] ?? 9);
+                  }).map(l => {
+                    const fullyReserved = l.machines_needed === 0 && l.kiosks_needed === 0;
+                    const partiallyReserved = (l.reserved_machines > 0 || l.reserved_kiosks > 0) && !fullyReserved;
+                    return (
+                      <tr key={l.id} style={{ background: l.stage === 'install_scheduled' ? '#fffbeb' : '#fff' }}>
+                        <td style={{ ...st.td, fontWeight: 600 }}>{l.name}</td>
+                        <td style={st.td}>
+                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: l.stage === 'install_scheduled' ? '#fef3c7' : '#f3f4f6', color: l.stage === 'install_scheduled' ? '#92400e' : '#374151', fontWeight: 600 }}>
+                            {l.stage.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td style={st.td}>
+                          {l.num_games > 0 && <span style={{ marginRight: 8 }}>🎰 {l.num_games}</span>}
+                          {l.num_kiosks > 0 && <span>📟 {l.num_kiosks}</span>}
+                        </td>
+                        <td style={st.td}>
+                          {fullyReserved ? (
+                            <span style={{ color: '#059669', fontWeight: 600 }}>✓ All reserved</span>
+                          ) : partiallyReserved ? (
+                            <span style={{ color: '#f59e0b' }}>🎰 {l.reserved_machines} / 📟 {l.reserved_kiosks}</span>
+                          ) : (
+                            <span style={{ color: '#9ca3af' }}>—</span>
+                          )}
+                        </td>
+                        <td style={st.td}>
+                          {!fullyReserved ? (
+                            <span style={{ color: '#ef4444', fontWeight: 600 }}>
+                              {l.machines_needed > 0 && `🎰 ${l.machines_needed} `}
+                              {l.kiosks_needed > 0 && `📟 ${l.kiosks_needed}`}
+                            </span>
+                          ) : (
+                            <span style={{ color: '#059669' }}>0</span>
+                          )}
+                        </td>
+                        <td style={st.td}>
+                          {!fullyReserved && (
+                            <button style={{ ...st.btn(), padding: '4px 12px', fontSize: 11 }}
+                              onClick={() => reserveForLead(l.id, l.machines_needed, l.kiosks_needed)}>
+                              Reserve
+                            </button>
+                          )}
+                          {(l.reserved_machines > 0 || l.reserved_kiosks > 0) && (
+                            <button style={{ ...st.btnGhost, padding: '4px 10px', fontSize: 11, marginLeft: 4, color: '#ef4444', borderColor: '#fecaca' }}
+                              onClick={() => unreserveForLead(l.id)}>
+                              Release
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 12 }}>
+              Moving a lead to <strong>Install Scheduled</strong> auto-reserves inventory. Moving to <strong>Live</strong> auto-deploys. Moving to <strong>Lost</strong> releases reservations back to available.
+            </p>
           </div>
         </div>
       )}

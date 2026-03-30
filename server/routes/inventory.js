@@ -109,6 +109,102 @@ router.delete('/items/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
+// POST /api/inventory/reserve — reserve N items of a type for a lead
+router.post('/reserve', async (req, res) => {
+  const { lead_id, type, count } = req.body;
+  if (!lead_id || !type || !count) return res.status(400).json({ error: 'lead_id, type, count required' });
+
+  // Find available items to reserve
+  const available = await db.prepare(
+    `SELECT id FROM inventory_items WHERE status = 'available' AND type = ? AND (lead_id IS NULL) LIMIT ?`
+  ).all(type, count);
+
+  if (available.length < count) {
+    return res.status(400).json({ error: `Only ${available.length} ${type}(s) available, need ${count}` });
+  }
+
+  for (const item of available) {
+    await db.prepare(`UPDATE inventory_items SET status='reserved', lead_id=?, updated_at=NOW() WHERE id=?`).run(lead_id, item.id);
+  }
+  res.json({ reserved: available.length });
+});
+
+// POST /api/inventory/unreserve — release reserved items back to available for a lead
+router.post('/unreserve', async (req, res) => {
+  const { lead_id } = req.body;
+  if (!lead_id) return res.status(400).json({ error: 'lead_id required' });
+  await db.prepare(`UPDATE inventory_items SET status='available', lead_id=NULL, updated_at=NOW() WHERE lead_id=? AND status='reserved'`).run(lead_id);
+  res.json({ ok: true });
+});
+
+// POST /api/inventory/deploy — mark lead's reserved items as deployed at a location
+router.post('/deploy', async (req, res) => {
+  const { lead_id, location_id } = req.body;
+  if (!lead_id) return res.status(400).json({ error: 'lead_id required' });
+  const today = new Date().toISOString().slice(0, 10);
+  const result = await db.pool.query(
+    `UPDATE inventory_items SET status='deployed', location_id=$1, deployed_at=$2, updated_at=NOW()
+     WHERE lead_id=$3 AND status='reserved' RETURNING id`,
+    [location_id || null, today, lead_id]
+  );
+  res.json({ deployed: result.rowCount });
+});
+
+// GET /api/inventory/demand — pipeline demand vs available stock
+router.get('/demand', async (req, res) => {
+  const activeStages = ['prospect','initial_contact','site_visit_scheduled','site_qualified','proposal_sent','agreement_signed','licensing','install_scheduled'];
+  const leads = await db.prepare(`
+    SELECT id, name, stage, num_games, num_kiosks, revenue_split
+    FROM leads WHERE stage = ANY(ARRAY[${activeStages.map(()=>'?').join(',')}]::text[]) AND num_games > 0
+  `).all(...activeStages);
+
+  const reserved = await db.prepare(`
+    SELECT lead_id, type, COUNT(*) as count FROM inventory_items WHERE status='reserved' GROUP BY lead_id, type
+  `).all();
+  const reservedByLead = {};
+  for (const r of reserved) {
+    if (!reservedByLead[r.lead_id]) reservedByLead[r.lead_id] = { machine: 0, kiosk: 0 };
+    reservedByLead[r.lead_id][r.type] = parseInt(r.count);
+  }
+
+  const stock = await db.prepare(`
+    SELECT type, status, COUNT(*) as count FROM inventory_items GROUP BY type, status
+  `).all();
+  const stockMap = {};
+  for (const s of stock) {
+    if (!stockMap[s.type]) stockMap[s.type] = {};
+    stockMap[s.type][s.status] = parseInt(s.count);
+  }
+
+  const leadsWithDemand = leads.map(l => ({
+    ...l,
+    reserved_machines: reservedByLead[l.id]?.machine || 0,
+    reserved_kiosks: reservedByLead[l.id]?.kiosk || 0,
+    machines_needed: Math.max(0, (l.num_games || 0) - (reservedByLead[l.id]?.machine || 0)),
+    kiosks_needed: Math.max(0, (l.num_kiosks || 0) - (reservedByLead[l.id]?.kiosk || 0)),
+  }));
+
+  const totalDemandMachines = leads.reduce((s, l) => s + (l.num_games || 0), 0);
+  const totalDemandKiosks = leads.reduce((s, l) => s + (l.num_kiosks || 0), 0);
+  const availableMachines = stockMap.machine?.available || 0;
+  const availableKiosks = stockMap.kiosk?.available || 0;
+  const reservedMachines = stockMap.machine?.reserved || 0;
+  const reservedKiosks = stockMap.kiosk?.reserved || 0;
+
+  res.json({
+    leads: leadsWithDemand,
+    stock: stockMap,
+    totalDemandMachines,
+    totalDemandKiosks,
+    availableMachines,
+    availableKiosks,
+    reservedMachines,
+    reservedKiosks,
+    shortfallMachines: Math.max(0, totalDemandMachines - availableMachines - reservedMachines),
+    shortfallKiosks: Math.max(0, totalDemandKiosks - availableKiosks - reservedKiosks),
+  });
+});
+
 // GET /api/inventory/summary
 router.get('/summary', async (req, res) => {
   const orders = await db.prepare('SELECT SUM(machines_qty) as total_machines, SUM(kiosks_qty) as total_kiosks FROM inventory_orders').get();
@@ -118,6 +214,7 @@ router.get('/summary', async (req, res) => {
       COUNT(*) FILTER (WHERE type='machine') as tagged_machines,
       COUNT(*) FILTER (WHERE type='kiosk') as tagged_kiosks,
       COUNT(*) FILTER (WHERE status='available') as available,
+      COUNT(*) FILTER (WHERE status='reserved') as reserved,
       COUNT(*) FILTER (WHERE status='deployed') as deployed,
       COUNT(*) FILTER (WHERE status='maintenance') as maintenance,
       COUNT(*) FILTER (WHERE status='retired') as retired
@@ -133,6 +230,7 @@ router.get('/summary', async (req, res) => {
     totalKiosksOrdered: totalKiosks,
     total_tagged: totalTagged,
     available: parseInt(items.available) || 0,
+    reserved: parseInt(items.reserved) || 0,
     deployed: parseInt(items.deployed) || 0,
     maintenance: parseInt(items.maintenance) || 0,
     retired: parseInt(items.retired) || 0,

@@ -148,6 +148,41 @@ router.put('/:id', async (req, res) => {
       `).run(req.params.id, `Stage: ${oldLead.stage} → ${stage}`, oldLead.stage, req.user.id);
     } catch(e) { /* activities table may not exist yet */ }
 
+    // Auto-reserve inventory when moving to install_scheduled
+    if (stage === 'install_scheduled') {
+      try {
+        const lead = await db.prepare('SELECT num_games, num_kiosks FROM leads WHERE id = ?').get(req.params.id);
+        const needed = { machine: lead.num_games || 0, kiosk: lead.num_kiosks || 0 };
+        for (const [type, count] of Object.entries(needed)) {
+          if (count <= 0) continue;
+          const available = await db.prepare(
+            `SELECT id FROM inventory_items WHERE status='available' AND type=? AND lead_id IS NULL LIMIT ?`
+          ).all(type, count);
+          for (const item of available) {
+            await db.prepare(`UPDATE inventory_items SET status='reserved', lead_id=?, updated_at=NOW() WHERE id=?`).run(req.params.id, item.id);
+          }
+        }
+      } catch(e) { /* inventory may not exist */ }
+    }
+
+    // Auto-deploy reserved inventory when lead goes live
+    if (stage === 'live') {
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        await db.pool.query(
+          `UPDATE inventory_items SET status='deployed', deployed_at=$1, updated_at=NOW() WHERE lead_id=$2 AND status='reserved'`,
+          [today, req.params.id]
+        );
+      } catch(e) { /* inventory may not exist */ }
+    }
+
+    // Release reserved inventory if lead is lost/archived
+    if (stage === 'lost' || stage === 'archived') {
+      try {
+        await db.prepare(`UPDATE inventory_items SET status='available', lead_id=NULL, updated_at=NOW() WHERE lead_id=? AND status='reserved'`).run(req.params.id);
+      } catch(e) { /* inventory may not exist */ }
+    }
+
     // Create follow-up task on certain stages
     if (['proposal_sent', 'agreement_signed', 'site_visit_scheduled'].includes(stage)) {
       try {

@@ -326,6 +326,14 @@ async function initDatabase() {
 
   // Safe column migrations
   await pool.query(`ALTER TABLE locations ADD COLUMN IF NOT EXISTS kiosks INTEGER DEFAULT 0`);
+  await pool.query(`ALTER TABLE inventory_items ADD COLUMN IF NOT EXISTS lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL`);
+  await pool.query(`
+    DO $$ BEGIN
+      ALTER TABLE inventory_items DROP CONSTRAINT IF EXISTS inventory_items_status_check;
+      ALTER TABLE inventory_items ADD CONSTRAINT inventory_items_status_check
+        CHECK (status IN ('available','reserved','deployed','maintenance','retired'));
+    END $$;
+  `);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS county TEXT`);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS address TEXT`);
   await pool.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS revenue_split TEXT`);
