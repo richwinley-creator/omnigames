@@ -59,21 +59,18 @@ router.get('/revenue-trend', async (req, res) => {
 // Revenue by location with date range
 router.get('/revenue-by-location', async (req, res) => {
   const { start, end } = req.query;
-  let sql = `
+  const params = [];
+  let joinCondition = 'r.location_id = l.id';
+  if (start) { joinCondition += ' AND r.date >= ?'; params.push(start); }
+  if (end) { joinCondition += ' AND r.date <= ?'; params.push(end); }
+  const sql = `
     SELECT l.name, l.gse_pct, l.partner, l.partner_pct, l.machines,
-      SUM(r.net) as total_net,
-      SUM(r.net * l.gse_pct / 100.0) as gse_share,
+      COALESCE(SUM(r.net), 0) as total_net,
+      COALESCE(SUM(r.net * l.gse_pct / 100.0), 0) as gse_share,
       COUNT(DISTINCT r.date) as reading_dates
     FROM locations l
-    LEFT JOIN readings r ON r.location_id = l.id`;
-  const params = [];
-  if (start || end) {
-    const conditions = [];
-    if (start) { conditions.push('r.date >= ?'); params.push(start); }
-    if (end) { conditions.push('r.date <= ?'); params.push(end); }
-    sql += ' WHERE ' + conditions.join(' AND ');
-  }
-  sql += ' GROUP BY l.id, l.name, l.gse_pct, l.partner, l.partner_pct, l.machines ORDER BY gse_share DESC';
+    LEFT JOIN readings r ON ${joinCondition}
+    GROUP BY l.id, l.name, l.gse_pct, l.partner, l.partner_pct, l.machines ORDER BY total_net DESC`;
   res.json(await db.prepare(sql).all(...params));
 });
 

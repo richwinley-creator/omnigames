@@ -27,7 +27,9 @@ const styles = {
 const fmt = (n) => '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 export default function Analytics() {
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const today = new Date().toISOString().slice(0, 10);
+  const monthStart = today.slice(0, 8) + '01';
+  const [dateRange, setDateRange] = useState({ start: monthStart, end: today });
   const navigate = useNavigate();
   const { data: overview } = useApi('/api/analytics/overview');
   const { data: funnel } = useApi('/api/analytics/lead-funnel');
