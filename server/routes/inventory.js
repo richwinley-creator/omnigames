@@ -123,12 +123,20 @@ router.get('/summary', async (req, res) => {
       COUNT(*) FILTER (WHERE status='retired') as retired
     FROM inventory_items
   `).get();
+  const totalMachines = parseInt(orders.total_machines) || 0;
+  const totalKiosks = parseInt(orders.total_kiosks) || 0;
+  const totalOrdered = totalMachines + totalKiosks;
+  const totalTagged = parseInt(items.total_tagged) || 0;
   res.json({
-    totalOrdered: (orders.total_machines || 0) + (orders.total_kiosks || 0),
-    totalMachinesOrdered: orders.total_machines || 0,
-    totalKiosksOrdered: orders.total_kiosks || 0,
-    ...items,
-    untagged: ((orders.total_machines || 0) + (orders.total_kiosks || 0)) - (items.total_tagged || 0),
+    totalOrdered,
+    totalMachinesOrdered: totalMachines,
+    totalKiosksOrdered: totalKiosks,
+    total_tagged: totalTagged,
+    available: parseInt(items.available) || 0,
+    deployed: parseInt(items.deployed) || 0,
+    maintenance: parseInt(items.maintenance) || 0,
+    retired: parseInt(items.retired) || 0,
+    untagged: totalOrdered - totalTagged,
   });
 });
 
