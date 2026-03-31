@@ -85,6 +85,94 @@ export default function MeterImport({ onSave }) {
   }, [locations]);
 
   // ── Spreadsheet parsing ──
+  const [workbook, setWorkbook] = useState(null);
+  const [sheetNames, setSheetNames] = useState([]);
+  const [selectedSheet, setSelectedSheet] = useState('');
+
+  const isPrevIn = (h) => (h.includes('perivous') || h.includes('pervious') || h.includes('previous') || h.includes('prev')) && h.includes('in') && !h.includes('out');
+  const isCurrIn = (h) => (h.includes('current') || h.includes('curr')) && h.includes('in') && !h.includes('out');
+  const isPrevOut = (h) => (h.includes('perivous') || h.includes('pervious') || h.includes('previous') || h.includes('prev')) && h.includes('out');
+  const isCurrOut = (h) => (h.includes('current') || h.includes('curr')) && h.includes('out');
+  const skipRows = ['total', 'totals', 'total in', 'total out', 'total left', 'kss', 'gse', 'net', 'grand total'];
+
+  const parseSheet = useCallback((wb, sheetName) => {
+    const sheet = wb.Sheets[sheetName];
+    const rows = utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (rows.length < 3) return null;
+
+    // Row 0 or 1 is often the location name (big merged cell)
+    let locationName = '';
+    for (let i = 0; i < Math.min(rows.length, 3); i++) {
+      const cell = String(rows[i]?.[0] || rows[i]?.[1] || '').trim();
+      if (cell && !cell.toLowerCase().includes('machine') && !cell.match(/^\d+$/) && cell.length > 2) {
+        locationName = cell;
+        break;
+      }
+    }
+
+    // Find header row — look for "machine" column
+    let headerIdx = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+      const row = rows[i].map(c => String(c).toLowerCase().trim());
+      if (row.some(c => c.includes('machine') || c === 'machines')) { headerIdx = i; break; }
+    }
+    // Fallback: look for "perivous" or "previous" or "current"
+    if (headerIdx === -1) {
+      for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const row = rows[i].map(c => String(c).toLowerCase().trim());
+        if (row.some(c => isPrevIn(c) || isCurrIn(c))) { headerIdx = i; break; }
+      }
+    }
+    if (headerIdx === -1) return null;
+
+    const headers = rows[headerIdx].map(c => String(c).toLowerCase().trim());
+
+    // Map columns
+    const nameCol = headers.findIndex(h => h.includes('machine') || h === 'machines');
+    const prevInCol = headers.findIndex(h => isPrevIn(h));
+    const currInCol = headers.findIndex(h => isCurrIn(h));
+    const prevOutCol = headers.findIndex(h => isPrevOut(h));
+    const currOutCol = headers.findIndex(h => isCurrOut(h));
+
+    const getNum = (row, col) => {
+      if (col < 0 || col >= row.length) return 0;
+      const v = parseFloat(String(row[col]).replace(/[,$\s]/g, ''));
+      return isNaN(v) ? 0 : v;
+    };
+
+    const machines = [];
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.every(c => c === '')) continue;
+
+      const name = nameCol >= 0 ? String(row[nameCol] || '').trim() : String(row[1] || row[0] || '').trim();
+      if (!name) continue;
+      if (skipRows.some(s => name.toLowerCase().startsWith(s))) continue;
+
+      const pi = getNum(row, prevInCol >= 0 ? prevInCol : 3);
+      const ci = getNum(row, currInCol >= 0 ? currInCol : 4);
+      const po = getNum(row, prevOutCol >= 0 ? prevOutCol : 7);
+      const co = getNum(row, currOutCol >= 0 ? currOutCol : 8);
+
+      if (pi === 0 && ci === 0 && po === 0 && co === 0) continue;
+
+      machines.push({ machine_name: name, prev_in: pi, curr_in: ci, prev_out: po, curr_out: co });
+    }
+
+    if (machines.length === 0) return null;
+
+    // Try to parse date from sheet name (e.g. "3-30-26" → 2026-03-30)
+    let parsedDate = readingDate;
+    const dateMatch = sheetName.match(/(\d{1,2})-(\d{1,2})-(\d{2,4})/);
+    if (dateMatch) {
+      const [, m, d, y] = dateMatch;
+      const year = y.length === 2 ? '20' + y : y;
+      parsedDate = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+    }
+
+    return { location: locationName, date: parsedDate, machines };
+  }, [readingDate]);
+
   const processSpreadsheet = useCallback((file) => {
     setStatus(null);
     setExtracted(null);
@@ -93,102 +181,59 @@ export default function MeterImport({ onSave }) {
     reader.onload = (e) => {
       try {
         const wb = read(e.target.result, { type: 'array' });
+        setWorkbook(wb);
+        setSheetNames(wb.SheetNames);
 
-        // Try each sheet
-        for (const sheetName of wb.SheetNames) {
-          const sheet = wb.Sheets[sheetName];
-          const rows = utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        // Default to last sheet (most recent date)
+        const lastSheet = wb.SheetNames[wb.SheetNames.length - 1];
+        setSelectedSheet(lastSheet);
 
-          if (rows.length < 2) continue;
+        const result = parseSheet(wb, lastSheet);
+        if (result) {
+          setExtracted(result);
+          setReadingDate(result.date);
 
-          // Find header row — look for columns containing "in" and "out"
-          let headerIdx = -1;
-          for (let i = 0; i < Math.min(rows.length, 10); i++) {
-            const row = rows[i].map(c => String(c).toLowerCase());
-            const hasIn = row.some(c => c.includes('prev') && c.includes('in') || c.includes('previous in'));
-            const hasOut = row.some(c => c.includes('prev') && c.includes('out') || c.includes('previous out'));
-            const hasCurrIn = row.some(c => c.includes('curr') && c.includes('in') || c.includes('current in'));
-            if (hasIn || hasOut || hasCurrIn) { headerIdx = i; break; }
+          // Match location
+          if (result.location && locations) {
+            const match = locations.find(l =>
+              l.name.toLowerCase().includes(result.location.toLowerCase()) ||
+              result.location.toLowerCase().includes(l.name.toLowerCase()) ||
+              l.sheet_name?.toLowerCase() === result.location.toLowerCase()
+            );
+            if (match) setSelectedLocation(String(match.id));
           }
 
-          // Fallback: look for "machine" or first row with numbers after it
-          if (headerIdx === -1) {
-            for (let i = 0; i < Math.min(rows.length, 10); i++) {
-              const row = rows[i].map(c => String(c).toLowerCase());
-              if (row.some(c => c.includes('machine') || c.includes('game') || c.includes('name'))) {
-                headerIdx = i;
-                break;
-              }
-            }
-          }
-
-          if (headerIdx === -1) headerIdx = 0;
-
-          const headers = rows[headerIdx].map(c => String(c).toLowerCase().trim());
-
-          // Map columns
-          const findCol = (...terms) => headers.findIndex(h => terms.some(t => h.includes(t)));
-          const nameCol = findCol('machine', 'game', 'name');
-          const prevInCol = findCol('prev') !== -1 && findCol('prev') === findCol('previous in', 'prev in', 'perivous in', 'pervious in')
-            ? findCol('previous in', 'prev in', 'perivous in', 'pervious in')
-            : headers.findIndex(h => (h.includes('prev') || h.includes('previous') || h.includes('perivous') || h.includes('pervious')) && h.includes('in'));
-          const currInCol = headers.findIndex(h => (h.includes('curr') || h.includes('current')) && h.includes('in'));
-          const prevOutCol = headers.findIndex(h => (h.includes('prev') || h.includes('previous') || h.includes('perivous') || h.includes('pervious')) && h.includes('out'));
-          const currOutCol = headers.findIndex(h => (h.includes('curr') || h.includes('current')) && h.includes('out'));
-
-          // If we can't find specific columns, try positional: name, prev_in, curr_in, prev_out, curr_out
-          const machines = [];
-          for (let i = headerIdx + 1; i < rows.length; i++) {
-            const row = rows[i];
-            if (!row || row.length === 0) continue;
-
-            const name = nameCol >= 0 ? String(row[nameCol] || '').trim() : String(row[0] || '').trim();
-            if (!name || name.toLowerCase() === 'total' || name.toLowerCase() === 'totals') continue;
-
-            const getNum = (col) => {
-              if (col < 0 || col >= row.length) return 0;
-              const v = parseFloat(String(row[col]).replace(/[,$]/g, ''));
-              return isNaN(v) ? 0 : v;
-            };
-
-            // Try mapped columns first, then positional
-            const pi = prevInCol >= 0 ? getNum(prevInCol) : getNum(1);
-            const ci = currInCol >= 0 ? getNum(currInCol) : getNum(2);
-            const po = prevOutCol >= 0 ? getNum(prevOutCol) : getNum(3);
-            const co = currOutCol >= 0 ? getNum(currOutCol) : getNum(4);
-
-            // Skip rows that are all zeros or have no numeric data
-            if (pi === 0 && ci === 0 && po === 0 && co === 0) continue;
-
-            machines.push({ machine_name: name, prev_in: pi, curr_in: ci, prev_out: po, curr_out: co });
-          }
-
-          if (machines.length > 0) {
-            // Try to match location from sheet name
-            let matchedLoc = '';
-            if (locations) {
-              const match = locations.find(l =>
-                l.name.toLowerCase().includes(sheetName.toLowerCase()) ||
-                l.sheet_name?.toLowerCase() === sheetName.toLowerCase() ||
-                sheetName.toLowerCase().includes(l.name.toLowerCase())
-              );
-              if (match) matchedLoc = String(match.id);
-            }
-
-            setExtracted({ location: sheetName, date: readingDate, machines });
-            if (matchedLoc) setSelectedLocation(matchedLoc);
-            setStatus({ type: 'success', msg: `Found ${machines.length} machines in sheet "${sheetName}"` });
-            return;
-          }
+          setStatus({ type: 'success', msg: `Found ${result.machines.length} machines from "${lastSheet}" — ${result.location || 'Unknown location'}` });
+        } else {
+          setStatus({ type: 'error', msg: `Could not parse sheet "${lastSheet}". Try a different sheet tab.` });
         }
-
-        setStatus({ type: 'error', msg: 'Could not find meter reading data. Make sure columns include machine name, previous in, current in, previous out, current out.' });
       } catch (err) {
         setStatus({ type: 'error', msg: `Failed to parse file: ${err.message}` });
       }
     };
     reader.readAsArrayBuffer(file);
-  }, [locations, readingDate]);
+  }, [locations, readingDate, parseSheet]);
+
+  const switchSheet = (sheetName) => {
+    setSelectedSheet(sheetName);
+    if (!workbook) return;
+    const result = parseSheet(workbook, sheetName);
+    if (result) {
+      setExtracted(result);
+      setReadingDate(result.date);
+      if (result.location && locations) {
+        const match = locations.find(l =>
+          l.name.toLowerCase().includes(result.location.toLowerCase()) ||
+          result.location.toLowerCase().includes(l.name.toLowerCase())
+        );
+        if (match) setSelectedLocation(String(match.id));
+      }
+      setStatus({ type: 'success', msg: `Found ${result.machines.length} machines from "${sheetName}" — ${result.location || 'Unknown location'}` });
+    } else {
+      setExtracted(null);
+      setStatus({ type: 'error', msg: `Could not parse sheet "${sheetName}".` });
+    }
+  };
 
   const onDrop = (e) => {
     e.preventDefault();
@@ -309,6 +354,23 @@ export default function MeterImport({ onSave }) {
 
       {extracted && (
         <div>
+          {/* Sheet tabs */}
+          {sheetNames.length > 1 && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, color: '#6b7280', display: 'block', marginBottom: 6 }}>Sheet (date)</label>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {sheetNames.map(s => (
+                  <button key={s} onClick={() => switchSheet(s)} style={{
+                    padding: '6px 12px', borderRadius: 6, border: '1px solid #e5e7eb', cursor: 'pointer',
+                    fontSize: 12, fontWeight: selectedSheet === s ? 600 : 400,
+                    background: selectedSheet === s ? '#b8943d' : '#fff',
+                    color: selectedSheet === s ? '#fff' : '#6b7280',
+                  }}>{s}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
             <div>
               <label style={{ fontSize: 12, color: '#6b7280', display: 'block', marginBottom: 4 }}>Location</label>
