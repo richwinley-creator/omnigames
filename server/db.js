@@ -547,8 +547,10 @@ async function initDatabase() {
   console.log('Database initialized');
 }
 
-// Run init
+// Run init — log errors but don't exit in serverless (tables likely already exist)
 initDatabase().catch(err => {
   console.error('Database initialization failed:', err.message);
-  process.exit(1);
+  if (!process.env.VERCEL) {
+    process.exit(1);
+  }
 });

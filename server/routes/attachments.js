@@ -6,8 +6,19 @@ import { fileURLToPath } from 'url';
 import db from '../db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+// On Vercel (serverless), the filesystem is read-only — use /tmp for uploads.
+// In local dev / traditional hosting, use the project's uploads/ directory.
+const isServerless = !!process.env.VERCEL;
+const uploadsDir = isServerless
+  ? path.join('/tmp', 'uploads')
+  : path.join(__dirname, '..', '..', 'uploads');
+
+try {
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+} catch (err) {
+  console.warn('Could not create uploads directory:', err.message);
+}
 
 const ALLOWED_MIME_TYPES = [
   'image/png', 'image/jpeg', 'image/gif', 'image/webp',
