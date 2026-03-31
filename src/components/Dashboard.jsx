@@ -41,6 +41,8 @@ export default function Dashboard({ isAdmin = true, user }) {
   const { data: forecast } = useApi(isAdmin ? '/api/analytics/forecast' : null);
   const { data: tasks, refetch: refetchTasks } = useApi('/api/tasks');
   const { data: allLeads } = useApi('/api/leads');
+  const { data: fills } = useApi('/api/fills');
+  const { data: weeklyRevenue } = useApi('/api/analytics/revenue-weekly?weeks=3');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -191,6 +193,60 @@ export default function Dashboard({ isAdmin = true, user }) {
         </div>
       )}
 
+      {/* ── Money Alerts ── */}
+      {isAdmin && (() => {
+        const moneyAlerts = [];
+        const now = new Date();
+        // Check fills for collection gaps
+        const locs2 = locations || [];
+        locs2.forEach(loc => {
+          if (loc.status !== 'active') return;
+          const locFills = (fills || []).filter(f => f.location_id === loc.id);
+          if (locFills.length === 0 && (loc.net || 0) > 0) {
+            moneyAlerts.push({ type: 'warning', msg: `${loc.name}: Never collected`, locId: loc.id });
+          } else if (locFills.length > 0) {
+            const lastFill = locFills.reduce((latest, f) => f.date > latest ? f.date : latest, '');
+            const days = Math.floor((now - new Date(lastFill)) / (1000 * 60 * 60 * 24));
+            if (days > 14) {
+              moneyAlerts.push({ type: days > 21 ? 'danger' : 'warning', msg: `${loc.name}: Not collected in ${days} days`, locId: loc.id });
+            }
+          }
+        });
+        // Check weekly revenue for >20% drops
+        if (weeklyRevenue && weeklyRevenue.length >= 2) {
+          const curr = weeklyRevenue[weeklyRevenue.length - 1]?.total_net || 0;
+          const prev = weeklyRevenue[weeklyRevenue.length - 2]?.total_net || 0;
+          if (prev > 0) {
+            const pctChange = ((curr - prev) / prev) * 100;
+            if (pctChange < -20) {
+              moneyAlerts.push({ type: 'danger', msg: `Revenue dropped ${Math.abs(pctChange).toFixed(0)}% week over week` });
+            }
+          }
+        }
+        if (moneyAlerts.length === 0) return null;
+        return (
+          <div className="d-card" style={{ borderTop: '3px solid #f59e0b', marginBottom: 20 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}>
+              {icons.bank} Money Alerts
+              <Link to="/dashboard/revenue" style={{ marginLeft: 'auto', fontSize: 12, color: '#b8943d', textDecoration: 'none', fontWeight: 500 }}>View Money →</Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {moneyAlerts.map((a, i) => (
+                <div key={i} style={{
+                  padding: '8px 12px', borderRadius: 8, fontSize: 13,
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  background: a.type === 'danger' ? '#fef2f2' : '#fffbeb',
+                  color: a.type === 'danger' ? '#991b1b' : '#92400e',
+                  border: `1px solid ${a.type === 'danger' ? '#fecaca' : '#fde68a'}`,
+                }}>
+                  {icons.alert} {a.locId ? <Link to={`/dashboard/locations/${a.locId}`} style={{ color: 'inherit', textDecoration: 'underline' }}>{a.msg}</Link> : a.msg}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── KPI Cards ── */}
       {loadingLocations && <div style={{ marginBottom: 20 }}><Skeleton variant="kpi" count={4} /></div>}
       <div className="d-kpi-grid">
@@ -265,14 +321,19 @@ export default function Dashboard({ isAdmin = true, user }) {
                 </tr>
               </thead>
               <tbody>
-                {topLocations.map((l, i) => (
+                {topLocations.map((l, i) => {
+                  const locObj = locs.find(loc => loc.name === l.name);
+                  return (
                   <tr key={l.name}>
                     <td style={{ width: 32, color: '#9ca3af', fontWeight: 600 }}>{i + 1}</td>
-                    <td style={{ fontWeight: 600, color: '#111827' }}>{l.name}</td>
+                    <td style={{ fontWeight: 600, color: '#111827' }}>
+                      {locObj ? <Link to={`/dashboard/locations/${locObj.id}`} style={{ color: '#111827', textDecoration: 'none' }}>{l.name}</Link> : l.name}
+                    </td>
                     <td style={{ textAlign: 'right', fontFamily: 'monospace' }}>{fmt(l.net)}</td>
                     <td style={{ textAlign: 'right', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>{fmt(l.gseRev)}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

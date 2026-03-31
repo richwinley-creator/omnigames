@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useApi, apiPut } from '../hooks/useApi';
 import { REVENUE_SEED } from '../data/locations';
+import { Link } from 'react-router-dom';
 
 const fmt = (n) => '$' + (n || 0).toLocaleString();
 
@@ -108,7 +109,9 @@ export default function Locations() {
               {filtered.map((l, i) => (
                 <tr key={l.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                   <td style={{ ...st.td, fontWeight: 600, color: '#111827' }}>
-                    {l.name}
+                    <Link to={`/dashboard/locations/${l.id}`} style={{ color: '#111827', textDecoration: 'none' }}>
+                      {l.name}
+                    </Link>
                     {l.machine_type && <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 400 }}>{l.machine_type}</div>}
                   </td>
                   <td style={st.td}>{l.partner}</td>

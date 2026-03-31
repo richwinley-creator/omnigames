@@ -214,4 +214,104 @@ router.get('/approvals', async (req, res) => {
   res.json(rows);
 });
 
+// Reconciliation — per-location: net revenue, gse share, last fill, last payment, outstanding
+router.get('/reconciliation', async (req, res) => {
+  const data = await db.prepare(`
+    SELECT
+      l.id, l.name, l.gse_pct, l.partner_pct, l.partner, l.machines, l.status,
+      COALESCE(rev.total_net, 0) as net_revenue,
+      COALESCE(rev.total_net * l.gse_pct / 100.0, 0) as gse_share,
+      COALESCE(rev.total_net * l.partner_pct / 100.0, 0) as partner_share,
+      f.last_fill_date,
+      COALESCE(f.total_collected, 0) as total_collected,
+      pay.last_payment_date,
+      COALESCE(pay.total_paid, 0) as total_paid,
+      pay.last_payment_status
+    FROM locations l
+    LEFT JOIN (
+      SELECT location_id, SUM(net) as total_net
+      FROM readings GROUP BY location_id
+    ) rev ON rev.location_id = l.id
+    LEFT JOIN (
+      SELECT location_id, MAX(date) as last_fill_date, SUM(amount) as total_collected
+      FROM fills GROUP BY location_id
+    ) f ON f.location_id = l.id
+    LEFT JOIN (
+      SELECT DISTINCT ON (location_id) location_id,
+        created_at as last_payment_date, status as last_payment_status,
+        total_paid
+      FROM (
+        SELECT p.location_id, p.created_at, p.status,
+          SUM(p.amount) OVER (PARTITION BY p.location_id) as total_paid
+        FROM payments p
+      ) sub
+      ORDER BY location_id, created_at DESC
+    ) pay ON pay.location_id = l.id
+    WHERE l.status = 'active'
+    ORDER BY COALESCE(rev.total_net, 0) DESC
+  `).all();
+  res.json(data);
+});
+
+// Location summary — revenue by week, total fills, total payments for single location
+router.get('/location-summary/:id', async (req, res) => {
+  const locationId = req.params.id;
+
+  const location = await db.prepare(`
+    SELECT l.*,
+      COALESCE(r.total_net, 0) as net,
+      COALESCE(r.total_net * l.gse_pct / 100.0, 0) as gse_share,
+      COALESCE(r.total_net * l.partner_pct / 100.0, 0) as partner_share,
+      r.last_read_date, r.reading_count
+    FROM locations l
+    LEFT JOIN (
+      SELECT location_id, SUM(net) as total_net, MAX(date) as last_read_date, COUNT(*) as reading_count
+      FROM readings GROUP BY location_id
+    ) r ON r.location_id = l.id
+    WHERE l.id = ?
+  `).get(locationId);
+
+  if (!location) return res.status(404).json({ error: 'Location not found' });
+
+  const weeklyRevenue = await db.prepare(`
+    SELECT
+      DATE_TRUNC('week', r.date::date)::date as week_start,
+      SUM(r.net) as total_net,
+      SUM(r.net * l.gse_pct / 100.0) as gse_share,
+      COUNT(*) as readings
+    FROM readings r
+    JOIN locations l ON r.location_id = l.id
+    WHERE r.location_id = ?
+    GROUP BY DATE_TRUNC('week', r.date::date)
+    ORDER BY week_start DESC
+    LIMIT 12
+  `).all(locationId);
+
+  const fills = await db.prepare(`
+    SELECT f.*, u.name as filled_by_name
+    FROM fills f LEFT JOIN users u ON f.filled_by = u.id
+    WHERE f.location_id = ? ORDER BY f.date DESC
+  `).all(locationId);
+
+  const payments = await db.prepare(`
+    SELECT * FROM payments WHERE location_id = ? ORDER BY created_at DESC
+  `).all(locationId);
+
+  const totalCollected = fills.reduce((s, f) => s + (f.amount || 0), 0);
+  const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0);
+  const lastFillDate = fills.length > 0 ? fills[0].date : null;
+  const lastPaymentDate = payments.length > 0 ? payments[0].created_at : null;
+
+  res.json({
+    location,
+    weeklyRevenue: weeklyRevenue.reverse(),
+    fills,
+    payments,
+    totalCollected,
+    totalPaid,
+    lastFillDate,
+    lastPaymentDate,
+  });
+});
+
 export default router;
