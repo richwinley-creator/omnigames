@@ -98,41 +98,95 @@ export default function MeterImport({ onSave }) {
   const parseSheet = useCallback((wb, sheetName) => {
     const sheet = wb.Sheets[sheetName];
     const rows = utils.sheet_to_json(sheet, { header: 1, defval: '' });
-    if (rows.length < 3) return null;
+    if (rows.length < 2) return null;
 
-    // Row 0 or 1 is often the location name (big merged cell)
+    // Scan first 10 rows to find location name and header row
     let locationName = '';
-    for (let i = 0; i < Math.min(rows.length, 3); i++) {
-      const cell = String(rows[i]?.[0] || rows[i]?.[1] || '').trim();
-      if (cell && !cell.toLowerCase().includes('machine') && !cell.match(/^\d+$/) && cell.length > 2) {
-        locationName = cell;
+    let headerIdx = -1;
+
+    for (let i = 0; i < Math.min(rows.length, 15); i++) {
+      const row = rows[i];
+      if (!row || row.every(c => c === '')) continue;
+      const cells = row.map(c => String(c).toLowerCase().trim());
+
+      // Check if this is a header row
+      const hasMachine = cells.some(c => c.includes('machine') || c === 'machines');
+      const hasPrevIn = cells.some(c => isPrevIn(c));
+      const hasCurrIn = cells.some(c => isCurrIn(c));
+      const hasPrevOut = cells.some(c => isPrevOut(c));
+
+      if (hasMachine || (hasPrevIn && hasCurrIn) || (hasPrevIn && hasPrevOut)) {
+        headerIdx = i;
         break;
       }
-    }
 
-    // Find header row — look for "machine" column
-    let headerIdx = -1;
-    for (let i = 0; i < Math.min(rows.length, 10); i++) {
-      const row = rows[i].map(c => String(c).toLowerCase().trim());
-      if (row.some(c => c.includes('machine') || c === 'machines')) { headerIdx = i; break; }
-    }
-    // Fallback: look for "perivous" or "previous" or "current"
-    if (headerIdx === -1) {
-      for (let i = 0; i < Math.min(rows.length, 10); i++) {
-        const row = rows[i].map(c => String(c).toLowerCase().trim());
-        if (row.some(c => isPrevIn(c) || isCurrIn(c))) { headerIdx = i; break; }
+      // Otherwise this might be the location name
+      if (!locationName) {
+        // Look for a text cell that's not a number and not too short
+        for (const cell of row) {
+          const s = String(cell).trim();
+          if (s && s.length > 2 && !s.match(/^\d+\.?\d*$/) && !s.match(/^[\d\-\/]+$/)) {
+            locationName = s;
+            break;
+          }
+        }
       }
     }
+
+    // If no header found, try brute force: find first row followed by rows with lots of numbers
+    if (headerIdx === -1) {
+      for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const nextRow = rows[i + 1];
+        if (!nextRow) continue;
+        const numCount = nextRow.filter(c => typeof c === 'number' || (typeof c === 'string' && c.match(/^\d+\.?\d*$/))).length;
+        if (numCount >= 3) { headerIdx = i; break; }
+      }
+    }
+
     if (headerIdx === -1) return null;
 
     const headers = rows[headerIdx].map(c => String(c).toLowerCase().trim());
 
-    // Map columns
-    const nameCol = headers.findIndex(h => h.includes('machine') || h === 'machines');
-    const prevInCol = headers.findIndex(h => isPrevIn(h));
-    const currInCol = headers.findIndex(h => isCurrIn(h));
-    const prevOutCol = headers.findIndex(h => isPrevOut(h));
-    const currOutCol = headers.findIndex(h => isCurrOut(h));
+    // Map columns — try exact match first, then fuzzy
+    let nameCol = headers.findIndex(h => h.includes('machine') || h === 'machines');
+    let prevInCol = headers.findIndex(h => isPrevIn(h));
+    let currInCol = headers.findIndex(h => isCurrIn(h));
+    let prevOutCol = headers.findIndex(h => isPrevOut(h));
+    let currOutCol = headers.findIndex(h => isCurrOut(h));
+
+    // If columns not found by header text, use positional based on the screenshot layout:
+    // A=row#, B=Machines, C=Company, D=Perivous In, E=Current In, F=Total In, G=row#, H=Pervious Out, I=Current Out, J=Total Out
+    if (prevInCol === -1 || currInCol === -1) {
+      // Find which columns have big numbers (> 1000) in the data rows
+      const dataRow = rows[headerIdx + 1];
+      if (dataRow) {
+        const numCols = [];
+        dataRow.forEach((c, idx) => {
+          const n = parseFloat(String(c).replace(/[,$\s]/g, ''));
+          if (!isNaN(n) && n > 100) numCols.push(idx);
+        });
+        // Expect pattern: prevIn, currIn, [totalIn], [gap], prevOut, currOut
+        if (numCols.length >= 4) {
+          if (prevInCol === -1) prevInCol = numCols[0];
+          if (currInCol === -1) currInCol = numCols[1];
+          // Skip totalIn column and any gap column
+          const outStart = numCols.length >= 6 ? 3 : 2;
+          if (prevOutCol === -1) prevOutCol = numCols[outStart] || numCols[2];
+          if (currOutCol === -1) currOutCol = numCols[outStart + 1] || numCols[3];
+        }
+      }
+    }
+
+    // Name column fallback: first column with text strings in data
+    if (nameCol === -1) {
+      const dataRow = rows[headerIdx + 1];
+      if (dataRow) {
+        for (let c = 0; c < dataRow.length; c++) {
+          const val = String(dataRow[c]).trim();
+          if (val && isNaN(parseFloat(val)) && val.length > 1) { nameCol = c; break; }
+        }
+      }
+    }
 
     const getNum = (row, col) => {
       if (col < 0 || col >= row.length) return 0;
@@ -145,14 +199,15 @@ export default function MeterImport({ onSave }) {
       const row = rows[i];
       if (!row || row.every(c => c === '')) continue;
 
-      const name = nameCol >= 0 ? String(row[nameCol] || '').trim() : String(row[1] || row[0] || '').trim();
+      // Get machine name
+      const name = nameCol >= 0 ? String(row[nameCol] || '').trim() : '';
       if (!name) continue;
       if (skipRows.some(s => name.toLowerCase().startsWith(s))) continue;
 
-      const pi = getNum(row, prevInCol >= 0 ? prevInCol : 3);
-      const ci = getNum(row, currInCol >= 0 ? currInCol : 4);
-      const po = getNum(row, prevOutCol >= 0 ? prevOutCol : 7);
-      const co = getNum(row, currOutCol >= 0 ? currOutCol : 8);
+      const pi = getNum(row, prevInCol);
+      const ci = getNum(row, currInCol);
+      const po = getNum(row, prevOutCol);
+      const co = getNum(row, currOutCol);
 
       if (pi === 0 && ci === 0 && po === 0 && co === 0) continue;
 

@@ -28,6 +28,7 @@ import Notifications from './components/Notifications';
 import Counties from './components/Counties';
 import Inventory from './components/Inventory';
 import Welcome from './components/Welcome';
+import Revenue from './components/Revenue';
 import { ToastProvider } from './components/Toast';
 import './styles.css';
 
@@ -53,6 +54,7 @@ function PublicLayout() {
 // primary: true = always visible; false = hamburger menu
 const ADMIN_TABS = [
   { key: 'overview', label: 'Dashboard', path: '', primary: true },
+  { key: 'revenue', label: 'Revenue', path: 'revenue', primary: true },
   { key: 'leads', label: 'Leads', path: 'leads', primary: true },
   { key: 'tasks', label: 'Tasks', path: 'tasks', primary: true },
   { key: 'locations', label: 'Locations', path: 'locations', primary: true },
@@ -297,6 +299,7 @@ function DashboardShell() {
       <main className="dash-content" style={dashStyles.content}>
         <Routes>
           <Route path="" element={<Dashboard key={refreshKey} isAdmin={isAdmin} user={user} />} />
+          <Route path="revenue" element={<Revenue key={refreshKey} />} />
           <Route path="leads" element={<Leads key={refreshKey} user={user} />} />
           <Route path="tasks" element={<Tasks key={refreshKey} user={user} />} />
           <Route path="locations" element={<Locations key={refreshKey} />} />

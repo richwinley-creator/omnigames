@@ -97,6 +97,47 @@ router.get('/deposit-trend', async (req, res) => {
   res.json(data.reverse());
 });
 
+// Weekly revenue breakdown
+router.get('/revenue-weekly', async (req, res) => {
+  const weeks = parseInt(req.query.weeks) || 12;
+  const locationId = req.query.location_id;
+  let sql = `
+    SELECT
+      DATE_TRUNC('week', r.date::date)::date as week_start,
+      (DATE_TRUNC('week', r.date::date) + INTERVAL '6 days')::date as week_end,
+      SUM(r.net) as total_net,
+      SUM(r.net * l.gse_pct / 100.0) as gse_share,
+      SUM(r.net * l.partner_pct / 100.0) as partner_share,
+      COUNT(DISTINCT r.location_id) as locations,
+      COUNT(*) as readings
+    FROM readings r
+    JOIN locations l ON r.location_id = l.id
+  `;
+  const params = [];
+  if (locationId) { sql += ' WHERE r.location_id = ?'; params.push(locationId); }
+  sql += ' GROUP BY DATE_TRUNC(\'week\', r.date::date) ORDER BY week_start DESC LIMIT ?';
+  params.push(weeks);
+  const data = await db.prepare(sql).all(...params);
+  res.json(data.reverse());
+});
+
+// Revenue per reading date (granular)
+router.get('/revenue-by-date', async (req, res) => {
+  const { start, end, location_id } = req.query;
+  let sql = `
+    SELECT r.date, l.name as location_name, l.id as location_id,
+      SUM(r.net) as total_net, SUM(r.net * l.gse_pct / 100.0) as gse_share,
+      COUNT(*) as machine_count
+    FROM readings r JOIN locations l ON r.location_id = l.id WHERE 1=1
+  `;
+  const params = [];
+  if (start) { sql += ' AND r.date >= ?'; params.push(start); }
+  if (end) { sql += ' AND r.date <= ?'; params.push(end); }
+  if (location_id) { sql += ' AND r.location_id = ?'; params.push(location_id); }
+  sql += ' GROUP BY r.date, l.id, l.name ORDER BY r.date DESC, total_net DESC';
+  res.json(await db.prepare(sql).all(...params));
+});
+
 // Overview stats
 router.get('/overview', async (req, res) => {
   const totalLeads = (await db.prepare('SELECT COUNT(*) as c FROM leads').get()).c;
