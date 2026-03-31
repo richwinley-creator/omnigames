@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApi } from '../hooks/useApi';
 import { Link } from 'react-router-dom';
-import { Skeleton } from './Skeleton';
+import Skeleton from './Skeleton';
 
 const fmt = (n) => '$' + (n || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 const fmtK = (n) => {
